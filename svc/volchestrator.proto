@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package volchestrator;
+
+message HeartbeatMessage {
+  string id = 1;
+}
+
+message HeartbeatResponse {
+  string id = 1;
+}
+
+service Volchestrator {
+  rpc Heartbeat(HeartbeatMessage) returns (HeartbeatResponse) {}
+}
