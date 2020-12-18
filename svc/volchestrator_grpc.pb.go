@@ -98,3 +98,89 @@ var Volchestrator_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "svc/volchestrator.proto",
 }
+
+// VolchestratorAdminClient is the client API for VolchestratorAdmin service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type VolchestratorAdminClient interface {
+	ListClients(ctx context.Context, in *ListClientsRequest, opts ...grpc.CallOption) (*ClientList, error)
+}
+
+type volchestratorAdminClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewVolchestratorAdminClient(cc grpc.ClientConnInterface) VolchestratorAdminClient {
+	return &volchestratorAdminClient{cc}
+}
+
+func (c *volchestratorAdminClient) ListClients(ctx context.Context, in *ListClientsRequest, opts ...grpc.CallOption) (*ClientList, error) {
+	out := new(ClientList)
+	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/ListClients", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// VolchestratorAdminServer is the server API for VolchestratorAdmin service.
+// All implementations must embed UnimplementedVolchestratorAdminServer
+// for forward compatibility
+type VolchestratorAdminServer interface {
+	ListClients(context.Context, *ListClientsRequest) (*ClientList, error)
+	mustEmbedUnimplementedVolchestratorAdminServer()
+}
+
+// UnimplementedVolchestratorAdminServer must be embedded to have forward compatible implementations.
+type UnimplementedVolchestratorAdminServer struct {
+}
+
+func (UnimplementedVolchestratorAdminServer) ListClients(context.Context, *ListClientsRequest) (*ClientList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListClients not implemented")
+}
+func (UnimplementedVolchestratorAdminServer) mustEmbedUnimplementedVolchestratorAdminServer() {}
+
+// UnsafeVolchestratorAdminServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to VolchestratorAdminServer will
+// result in compilation errors.
+type UnsafeVolchestratorAdminServer interface {
+	mustEmbedUnimplementedVolchestratorAdminServer()
+}
+
+func RegisterVolchestratorAdminServer(s grpc.ServiceRegistrar, srv VolchestratorAdminServer) {
+	s.RegisterService(&VolchestratorAdmin_ServiceDesc, srv)
+}
+
+func _VolchestratorAdmin_ListClients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListClientsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorAdminServer).ListClients(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.VolchestratorAdmin/ListClients",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorAdminServer).ListClients(ctx, req.(*ListClientsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// VolchestratorAdmin_ServiceDesc is the grpc.ServiceDesc for VolchestratorAdmin service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var VolchestratorAdmin_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "volchestrator.VolchestratorAdmin",
+	HandlerType: (*VolchestratorAdminServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListClients",
+			Handler:    _VolchestratorAdmin_ListClients_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "svc/volchestrator.proto",
+}

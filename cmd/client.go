@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/thanhpk/randstr"
 	"google.golang.org/grpc"
 
 	svc "github.com/p0pr0ck5/volchestrator/svc"
@@ -31,6 +32,10 @@ var serverAddress string
 var clientID string
 
 func clientRun(cmd *cobra.Command, args []string) {
+	if clientID == "" {
+		clientID = randstr.Hex(16)
+	}
+
 	conn, err := grpc.Dial(serverAddress, []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}...)
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
@@ -46,7 +51,7 @@ func clientRun(cmd *cobra.Command, args []string) {
 		case <-t.C:
 			_, err := client.Heartbeat(context.Background(), &svc.HeartbeatMessage{Id: clientID})
 			if err != nil {
-				log.Fatalln(err)
+				log.Println(err)
 			}
 		}
 	}
@@ -63,6 +68,6 @@ var clientCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(clientCmd)
 
-	clientCmd.Flags().StringVarP(&serverAddress, "address", "", "", "Address for the volchestrator server")
-	clientCmd.Flags().StringVarP(&clientID, "client-id", "", "", "A unique client ID")
+	clientCmd.Flags().StringVarP(&serverAddress, "address", "a", "127.0.0.1:50051", "Address for the volchestrator server")
+	clientCmd.Flags().StringVarP(&clientID, "client-id", "c", "", "A unique client ID")
 }

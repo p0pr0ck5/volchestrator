@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package volchestrator;
 
 message HeartbeatMessage {
@@ -12,4 +14,28 @@ message HeartbeatResponse {
 
 service Volchestrator {
   rpc Heartbeat(HeartbeatMessage) returns (HeartbeatResponse) {}
+}
+
+enum ClientStatus {
+  UNKNOWN = 0;
+  ALIVE = 1;
+  DEAD = 2;
+  LEFT = 3;
+}
+
+message ClientInfo {
+  string id = 1;
+  ClientStatus clientStatus = 2;
+  google.protobuf.Timestamp firstSeen = 3;
+  google.protobuf.Timestamp lastSeen = 4;
+}
+
+message ClientList {
+  repeated ClientInfo info = 1;
+}
+
+message ListClientsRequest {}
+
+service VolchestratorAdmin {
+  rpc ListClients(ListClientsRequest) returns (ClientList) {}
 }

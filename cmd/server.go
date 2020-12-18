@@ -23,19 +23,22 @@ import (
 	"sync"
 	"time"
 
+	"github.com/golang/protobuf/ptypes"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 
 	svc "github.com/p0pr0ck5/volchestrator/svc"
 )
 
-const heartbeatTTL = 5 // 5 seconds
+const heartbeatTTL = 5  // 5 seconds
+const tombstoneTTL = 30 // 30 seconds
 
 var address string
 
 // Server implements the Volchestrator service
 type Server struct {
 	svc.UnimplementedVolchestratorServer
+	svc.UnimplementedVolchestratorAdminServer
 
 	Address string
 
@@ -65,6 +68,21 @@ type ClientInfo struct {
 	Status    ClientStatus
 	FirstSeen time.Time
 	LastSeen  time.Time
+}
+
+// ClientFilterFunc is a function to filter a list of clients based on a given condition
+type ClientFilterFunc func(ClientInfo) bool
+
+// ClientFilterAll returns all clients
+func ClientFilterAll(ci ClientInfo) bool {
+	return true
+}
+
+// ClientFilterByStatus returns clients that match a given status
+func ClientFilterByStatus(status ClientStatus) ClientFilterFunc {
+	return func(ci ClientInfo) bool {
+		return ci.Status == status
+	}
 }
 
 // ClientMap maps clients to their info
@@ -102,14 +120,24 @@ func (m *ClientMap) UpdateClient(id string, status ClientStatus) {
 	m.m[id] = client
 }
 
+// RemoveClient deletes a given client from the ClientMap
+func (m *ClientMap) RemoveClient(id string) {
+	m.l.Lock()
+	defer m.l.Unlock()
+
+	delete(m.m, id)
+}
+
 // Clients returns a list of ClientInfo
-func (m *ClientMap) Clients() []ClientInfo {
+func (m *ClientMap) Clients(f ClientFilterFunc) []ClientInfo {
 	m.l.Lock()
 	defer m.l.Unlock()
 
 	var c []ClientInfo
 	for _, ci := range m.m {
-		c = append(c, ci)
+		if f(ci) {
+			c = append(c, ci)
+		}
 	}
 
 	return c
@@ -117,12 +145,21 @@ func (m *ClientMap) Clients() []ClientInfo {
 
 // Prune cleans up the client list
 func (s *Server) Prune() {
-	clients := s.clientMap.Clients()
-
 	now := time.Now()
-	for _, client := range clients {
+
+	deadClients := s.clientMap.Clients(ClientFilterByStatus(Dead))
+	for _, client := range deadClients {
 		d := now.Sub(client.LastSeen)
-		if d > time.Second*heartbeatTTL && client.Status == Alive {
+		if d > time.Second*tombstoneTTL {
+			log.Printf("Removing %s with diff %v", client.ID, d)
+			s.clientMap.RemoveClient(client.ID)
+		}
+	}
+
+	aliveClients := s.clientMap.Clients(ClientFilterByStatus(Alive))
+	for _, client := range aliveClients {
+		d := now.Sub(client.LastSeen)
+		if d > time.Second*heartbeatTTL {
 			log.Printf("Marking %s as dead with diff %v", client.ID, d)
 			s.clientMap.UpdateClient(client.ID, Dead)
 		}
@@ -139,6 +176,27 @@ func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.H
 		Id: m.Id,
 	}
 
+	return res, nil
+}
+
+// ListClients returns the ClientMap info
+func (s *Server) ListClients(ctx context.Context, m *svc.ListClientsRequest) (*svc.ClientList, error) {
+	res := &svc.ClientList{}
+	infos := []*svc.ClientInfo{}
+	clients := s.clientMap.Clients(ClientFilterAll)
+
+	for _, client := range clients {
+		f, _ := ptypes.TimestampProto(client.FirstSeen)
+		l, _ := ptypes.TimestampProto(client.LastSeen)
+		infos = append(infos, &svc.ClientInfo{
+			Id:           client.ID,
+			ClientStatus: svc.ClientStatus(client.Status),
+			FirstSeen:    f,
+			LastSeen:     l,
+		})
+	}
+
+	res.Info = infos
 	return res, nil
 }
 
@@ -168,6 +226,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
 	svc.RegisterVolchestratorServer(grpcServer, s)
+	svc.RegisterVolchestratorAdminServer(grpcServer, s)
 	grpcServer.Serve(listen)
 }
 
@@ -182,5 +241,5 @@ var serverCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(serverCmd)
 
-	serverCmd.Flags().StringVarP(&address, "address", "", "", "Listen address for the volchestrator server")
+	serverCmd.Flags().StringVarP(&address, "address", "a", "127.0.0.1:50051", "Listen address for the volchestrator server")
 }
