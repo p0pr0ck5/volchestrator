@@ -16,9 +16,9 @@ const tombstoneTTL = 30 // 30 seconds
 
 // Volume represents a definition of an EBS volume in the data store
 type Volume struct {
-	ID     string
-	Tags   []string
-	Region string
+	ID               string
+	Tags             []string
+	AvailabilityZone string
 }
 
 // Server interacts with clients to manage volume leases
@@ -37,7 +37,7 @@ type Backend interface {
 	ListVolumes() ([]*Volume, error)
 	AddVolume(*Volume) error
 	UpdateVolume(*Volume) error
-	DeleteVolume(*Volume) error
+	DeleteVolume(id string) error
 }
 
 // NewServer creates a new Server with a given Backend
@@ -183,7 +183,7 @@ func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.H
 }
 
 // ListClients returns the ClientMap info
-func (s *Server) ListClients(ctx context.Context, m *svc.ListClientsRequest) (*svc.ClientList, error) {
+func (s *Server) ListClients(ctx context.Context, m *svc.Empty) (*svc.ClientList, error) {
 	res := &svc.ClientList{}
 	infos := []*svc.ClientInfo{}
 	clients := s.clientMap.Clients(ClientFilterAll)
@@ -215,4 +215,86 @@ func (s *Server) Init() {
 			}
 		}
 	}()
+}
+
+// GetVolume returns a Volume for a given ID, or nil if the
+// volume ID is not found in the backend
+func (s *Server) GetVolume(ctx context.Context, volumeID *svc.VolumeID) (*svc.Volume, error) {
+	volume, err := s.b.GetVolume(volumeID.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	if volume == nil {
+		return &svc.Volume{}, nil
+	}
+
+	v := &svc.Volume{
+		Id:               volume.ID,
+		Tags:             volume.Tags,
+		AvailabilityZone: volume.AvailabilityZone,
+	}
+
+	return v, nil
+}
+
+// ListVolumes returns all volumes currently in the backend
+func (s *Server) ListVolumes(ctx context.Context, e *svc.Empty) (*svc.VolumeList, error) {
+	volumes, err := s.b.ListVolumes()
+	if err != nil {
+		return nil, err
+	}
+
+	volumeList := &svc.VolumeList{
+		Volumes: []*svc.Volume{},
+	}
+
+	for _, volume := range volumes {
+		volumeList.Volumes = append(volumeList.Volumes, &svc.Volume{
+			Id:               volume.ID,
+			Tags:             volume.Tags,
+			AvailabilityZone: volume.AvailabilityZone,
+		})
+	}
+
+	return volumeList, nil
+}
+
+// AddVolume adds a new volume to the backend
+func (s *Server) AddVolume(ctx context.Context, volume *svc.Volume) (*svc.Volume, error) {
+	v := &Volume{
+		ID:               volume.Id,
+		Tags:             volume.Tags,
+		AvailabilityZone: volume.AvailabilityZone,
+	}
+
+	err := s.b.AddVolume(v)
+	if err != nil {
+		return nil, err
+	}
+
+	return volume, nil
+}
+
+// UpdateVolume performs an in-place update of an existing volume in the backend
+func (s *Server) UpdateVolume(ctx context.Context, volume *svc.Volume) (*svc.Volume, error) {
+	v := &Volume{
+		ID:               volume.Id,
+		Tags:             volume.Tags,
+		AvailabilityZone: volume.AvailabilityZone,
+	}
+
+	err := s.b.UpdateVolume(v)
+	if err != nil {
+		return nil, err
+	}
+
+	return volume, nil
+}
+
+// DeleteVolume deletes a volume from the backend
+func (s *Server) DeleteVolume(ctx context.Context, volumeID *svc.VolumeID) (*svc.Empty, error) {
+	err := s.b.DeleteVolume(volumeID.Id)
+
+	return &svc.Empty{}, err
 }

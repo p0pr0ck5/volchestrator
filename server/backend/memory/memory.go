@@ -65,12 +65,12 @@ func (m *MemoryBackend) UpdateVolume(volume *server.Volume) error {
 }
 
 // DeleteVolume satisfies server.Backend
-func (m *MemoryBackend) DeleteVolume(volume *server.Volume) error {
-	if _, exists := m.volumeMap[volume.ID]; !exists {
-		return fmt.Errorf("Volume %q does not exist in memory backend", volume.ID)
+func (m *MemoryBackend) DeleteVolume(id string) error {
+	if _, exists := m.volumeMap[id]; !exists {
+		return fmt.Errorf("Volume %q does not exist in memory backend", id)
 	}
 
-	delete(m.volumeMap, volume.ID)
+	delete(m.volumeMap, id)
 
 	return nil
 }

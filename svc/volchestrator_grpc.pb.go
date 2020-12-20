@@ -103,7 +103,12 @@ var Volchestrator_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VolchestratorAdminClient interface {
-	ListClients(ctx context.Context, in *ListClientsRequest, opts ...grpc.CallOption) (*ClientList, error)
+	ListClients(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ClientList, error)
+	GetVolume(ctx context.Context, in *VolumeID, opts ...grpc.CallOption) (*Volume, error)
+	ListVolumes(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*VolumeList, error)
+	AddVolume(ctx context.Context, in *Volume, opts ...grpc.CallOption) (*Volume, error)
+	UpdateVolume(ctx context.Context, in *Volume, opts ...grpc.CallOption) (*Volume, error)
+	DeleteVolume(ctx context.Context, in *VolumeID, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type volchestratorAdminClient struct {
@@ -114,9 +119,54 @@ func NewVolchestratorAdminClient(cc grpc.ClientConnInterface) VolchestratorAdmin
 	return &volchestratorAdminClient{cc}
 }
 
-func (c *volchestratorAdminClient) ListClients(ctx context.Context, in *ListClientsRequest, opts ...grpc.CallOption) (*ClientList, error) {
+func (c *volchestratorAdminClient) ListClients(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ClientList, error) {
 	out := new(ClientList)
 	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/ListClients", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *volchestratorAdminClient) GetVolume(ctx context.Context, in *VolumeID, opts ...grpc.CallOption) (*Volume, error) {
+	out := new(Volume)
+	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/GetVolume", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *volchestratorAdminClient) ListVolumes(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*VolumeList, error) {
+	out := new(VolumeList)
+	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/ListVolumes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *volchestratorAdminClient) AddVolume(ctx context.Context, in *Volume, opts ...grpc.CallOption) (*Volume, error) {
+	out := new(Volume)
+	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/AddVolume", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *volchestratorAdminClient) UpdateVolume(ctx context.Context, in *Volume, opts ...grpc.CallOption) (*Volume, error) {
+	out := new(Volume)
+	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/UpdateVolume", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *volchestratorAdminClient) DeleteVolume(ctx context.Context, in *VolumeID, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/DeleteVolume", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +177,12 @@ func (c *volchestratorAdminClient) ListClients(ctx context.Context, in *ListClie
 // All implementations must embed UnimplementedVolchestratorAdminServer
 // for forward compatibility
 type VolchestratorAdminServer interface {
-	ListClients(context.Context, *ListClientsRequest) (*ClientList, error)
+	ListClients(context.Context, *Empty) (*ClientList, error)
+	GetVolume(context.Context, *VolumeID) (*Volume, error)
+	ListVolumes(context.Context, *Empty) (*VolumeList, error)
+	AddVolume(context.Context, *Volume) (*Volume, error)
+	UpdateVolume(context.Context, *Volume) (*Volume, error)
+	DeleteVolume(context.Context, *VolumeID) (*Empty, error)
 	mustEmbedUnimplementedVolchestratorAdminServer()
 }
 
@@ -135,8 +190,23 @@ type VolchestratorAdminServer interface {
 type UnimplementedVolchestratorAdminServer struct {
 }
 
-func (UnimplementedVolchestratorAdminServer) ListClients(context.Context, *ListClientsRequest) (*ClientList, error) {
+func (UnimplementedVolchestratorAdminServer) ListClients(context.Context, *Empty) (*ClientList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListClients not implemented")
+}
+func (UnimplementedVolchestratorAdminServer) GetVolume(context.Context, *VolumeID) (*Volume, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVolume not implemented")
+}
+func (UnimplementedVolchestratorAdminServer) ListVolumes(context.Context, *Empty) (*VolumeList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListVolumes not implemented")
+}
+func (UnimplementedVolchestratorAdminServer) AddVolume(context.Context, *Volume) (*Volume, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddVolume not implemented")
+}
+func (UnimplementedVolchestratorAdminServer) UpdateVolume(context.Context, *Volume) (*Volume, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVolume not implemented")
+}
+func (UnimplementedVolchestratorAdminServer) DeleteVolume(context.Context, *VolumeID) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteVolume not implemented")
 }
 func (UnimplementedVolchestratorAdminServer) mustEmbedUnimplementedVolchestratorAdminServer() {}
 
@@ -152,7 +222,7 @@ func RegisterVolchestratorAdminServer(s grpc.ServiceRegistrar, srv Volchestrator
 }
 
 func _VolchestratorAdmin_ListClients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListClientsRequest)
+	in := new(Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -164,7 +234,97 @@ func _VolchestratorAdmin_ListClients_Handler(srv interface{}, ctx context.Contex
 		FullMethod: "/volchestrator.VolchestratorAdmin/ListClients",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VolchestratorAdminServer).ListClients(ctx, req.(*ListClientsRequest))
+		return srv.(VolchestratorAdminServer).ListClients(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VolchestratorAdmin_GetVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VolumeID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorAdminServer).GetVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.VolchestratorAdmin/GetVolume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorAdminServer).GetVolume(ctx, req.(*VolumeID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VolchestratorAdmin_ListVolumes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorAdminServer).ListVolumes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.VolchestratorAdmin/ListVolumes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorAdminServer).ListVolumes(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VolchestratorAdmin_AddVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Volume)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorAdminServer).AddVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.VolchestratorAdmin/AddVolume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorAdminServer).AddVolume(ctx, req.(*Volume))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VolchestratorAdmin_UpdateVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Volume)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorAdminServer).UpdateVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.VolchestratorAdmin/UpdateVolume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorAdminServer).UpdateVolume(ctx, req.(*Volume))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VolchestratorAdmin_DeleteVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VolumeID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorAdminServer).DeleteVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.VolchestratorAdmin/DeleteVolume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorAdminServer).DeleteVolume(ctx, req.(*VolumeID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -179,6 +339,26 @@ var VolchestratorAdmin_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListClients",
 			Handler:    _VolchestratorAdmin_ListClients_Handler,
+		},
+		{
+			MethodName: "GetVolume",
+			Handler:    _VolchestratorAdmin_GetVolume_Handler,
+		},
+		{
+			MethodName: "ListVolumes",
+			Handler:    _VolchestratorAdmin_ListVolumes_Handler,
+		},
+		{
+			MethodName: "AddVolume",
+			Handler:    _VolchestratorAdmin_AddVolume_Handler,
+		},
+		{
+			MethodName: "UpdateVolume",
+			Handler:    _VolchestratorAdmin_UpdateVolume_Handler,
+		},
+		{
+			MethodName: "DeleteVolume",
+			Handler:    _VolchestratorAdmin_DeleteVolume_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

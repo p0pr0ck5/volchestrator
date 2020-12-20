@@ -34,8 +34,28 @@ message ClientList {
   repeated ClientInfo info = 1;
 }
 
-message ListClientsRequest {}
+message Empty {}
+
+message VolumeID {
+  string id = 1;
+}
+
+message Volume {
+  string id = 1;
+  repeated string tags = 2;
+  string availabilityZone = 3;
+}
+
+message VolumeList {
+  repeated Volume volumes = 1;
+}
 
 service VolchestratorAdmin {
-  rpc ListClients(ListClientsRequest) returns (ClientList) {}
+  rpc ListClients(Empty) returns (ClientList) {}
+
+  rpc GetVolume(VolumeID) returns (Volume) {}
+  rpc ListVolumes(Empty) returns (VolumeList) {}
+  rpc AddVolume(Volume) returns (Volume) {}
+  rpc UpdateVolume(Volume) returns (Volume) {}
+  rpc DeleteVolume(VolumeID) returns (Empty) {}
 }
