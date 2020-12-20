@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -27,12 +26,14 @@ type Server struct {
 	svc.UnimplementedVolchestratorAdminServer
 
 	b Backend
-
-	clientMap *ClientMap
 }
 
 // Backend defines functions implemented by the data store
 type Backend interface {
+	UpdateClient(string, ClientStatus) error
+	RemoveClient(string) error
+	Clients(ClientFilterFunc) ([]ClientInfo, error)
+
 	GetVolume(id string) (*Volume, error)
 	ListVolumes() ([]*Volume, error)
 	AddVolume(*Volume) error
@@ -43,8 +44,7 @@ type Backend interface {
 // NewServer creates a new Server with a given Backend
 func NewServer(b Backend) *Server {
 	return &Server{
-		b:         b,
-		clientMap: NewClientMap(),
+		b: b,
 	}
 }
 
@@ -88,83 +88,45 @@ func ClientFilterByStatus(status ClientStatus) ClientFilterFunc {
 	}
 }
 
-// ClientMap maps clients to their info
-type ClientMap struct {
-	m map[string]ClientInfo
-	l sync.Mutex
-}
+// Init starts background routines
+func (s *Server) Init() {
+	go func() {
+		t := time.NewTicker(time.Second * heartbeatTTL)
 
-// NewClientMap returns an initialized ClientMap
-func NewClientMap() *ClientMap {
-	m := &ClientMap{
-		m: make(map[string]ClientInfo),
-	}
-
-	return m
-}
-
-// UpdateClient updates the client info for a given client
-func (m *ClientMap) UpdateClient(id string, status ClientStatus) {
-	m.l.Lock()
-	defer m.l.Unlock()
-
-	var client ClientInfo
-	var ok bool
-	if client, ok = m.m[id]; !ok {
-		client = ClientInfo{
-			ID:        id,
-			FirstSeen: time.Now(),
+		for {
+			select {
+			case <-t.C:
+				s.Prune()
+			}
 		}
-	}
-
-	client.LastSeen = time.Now()
-	client.Status = status
-
-	m.m[id] = client
-}
-
-// RemoveClient deletes a given client from the ClientMap
-func (m *ClientMap) RemoveClient(id string) {
-	m.l.Lock()
-	defer m.l.Unlock()
-
-	delete(m.m, id)
-}
-
-// Clients returns a list of ClientInfo
-func (m *ClientMap) Clients(f ClientFilterFunc) []ClientInfo {
-	m.l.Lock()
-	defer m.l.Unlock()
-
-	var c []ClientInfo
-	for _, ci := range m.m {
-		if f(ci) {
-			c = append(c, ci)
-		}
-	}
-
-	return c
+	}()
 }
 
 // Prune cleans up the client list
 func (s *Server) Prune() {
 	now := time.Now()
 
-	deadClients := s.clientMap.Clients(ClientFilterByStatus(Dead))
+	deadClients, err := s.b.Clients(ClientFilterByStatus(Dead))
+	if err != nil {
+		log.Println(err)
+	}
 	for _, client := range deadClients {
 		d := now.Sub(client.LastSeen)
 		if d > time.Second*tombstoneTTL {
 			log.Printf("Removing %s with diff %v", client.ID, d)
-			s.clientMap.RemoveClient(client.ID)
+			s.b.RemoveClient(client.ID)
 		}
 	}
 
-	aliveClients := s.clientMap.Clients(ClientFilterByStatus(Alive))
+	aliveClients, err := s.b.Clients(ClientFilterByStatus(Alive))
+	if err != nil {
+		log.Println(err)
+	}
 	for _, client := range aliveClients {
 		d := now.Sub(client.LastSeen)
 		if d > time.Second*heartbeatTTL {
 			log.Printf("Marking %s as dead with diff %v", client.ID, d)
-			s.clientMap.UpdateClient(client.ID, Dead)
+			s.b.UpdateClient(client.ID, Dead)
 		}
 	}
 }
@@ -173,7 +135,7 @@ func (s *Server) Prune() {
 func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.HeartbeatResponse, error) {
 	log.Println("Seen", m.Id)
 
-	s.clientMap.UpdateClient(m.Id, Alive)
+	s.b.UpdateClient(m.Id, Alive)
 
 	res := &svc.HeartbeatResponse{
 		Id: m.Id,
@@ -186,7 +148,10 @@ func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.H
 func (s *Server) ListClients(ctx context.Context, m *svc.Empty) (*svc.ClientList, error) {
 	res := &svc.ClientList{}
 	infos := []*svc.ClientInfo{}
-	clients := s.clientMap.Clients(ClientFilterAll)
+	clients, err := s.b.Clients(ClientFilterAll)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, client := range clients {
 		f, _ := ptypes.TimestampProto(client.FirstSeen)
@@ -201,20 +166,6 @@ func (s *Server) ListClients(ctx context.Context, m *svc.Empty) (*svc.ClientList
 
 	res.Info = infos
 	return res, nil
-}
-
-// Init starts background routines
-func (s *Server) Init() {
-	go func() {
-		t := time.NewTicker(time.Second * heartbeatTTL)
-
-		for {
-			select {
-			case <-t.C:
-				s.Prune()
-			}
-		}
-	}()
 }
 
 // GetVolume returns a Volume for a given ID, or nil if the

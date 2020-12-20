@@ -3,6 +3,8 @@ package memory
 import (
 	"fmt"
 	"log"
+	"sync"
+	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server"
 )
@@ -10,15 +12,80 @@ import (
 // MemoryBackend implements server.Backend
 type MemoryBackend struct {
 	volumeMap map[string]*server.Volume
+
+	clientMap *ClientMap
 }
 
 // NewMemoryBackend creates an initialized empty MemoryBackend
 func NewMemoryBackend() *MemoryBackend {
 	m := &MemoryBackend{
 		volumeMap: make(map[string]*server.Volume),
+		clientMap: NewClientMap(),
 	}
 
 	return m
+}
+
+// ClientMap maps clients to their info
+type ClientMap struct {
+	m map[string]server.ClientInfo
+	l sync.Mutex
+}
+
+// NewClientMap returns an initialized ClientMap
+func NewClientMap() *ClientMap {
+	m := &ClientMap{
+		m: make(map[string]server.ClientInfo),
+	}
+
+	return m
+}
+
+// UpdateClient updates the client info for a given client
+func (m *MemoryBackend) UpdateClient(id string, status server.ClientStatus) error {
+	m.clientMap.l.Lock()
+	defer m.clientMap.l.Unlock()
+
+	var client server.ClientInfo
+	var ok bool
+	if client, ok = m.clientMap.m[id]; !ok {
+		client = server.ClientInfo{
+			ID:        id,
+			FirstSeen: time.Now(),
+		}
+	}
+
+	client.LastSeen = time.Now()
+	client.Status = status
+
+	m.clientMap.m[id] = client
+
+	return nil
+}
+
+// RemoveClient deletes a given client from the ClientMap
+func (m *MemoryBackend) RemoveClient(id string) error {
+	m.clientMap.l.Lock()
+	defer m.clientMap.l.Unlock()
+
+	delete(m.clientMap.m, id)
+
+	return nil
+}
+
+// Clients returns a list of server.ClientInfo
+func (m *MemoryBackend) Clients(f server.ClientFilterFunc) ([]server.ClientInfo, error) {
+	m.clientMap.l.Lock()
+	defer m.clientMap.l.Unlock()
+
+	var c []server.ClientInfo
+	for _, ci := range m.clientMap.m {
+		if f(ci) {
+			c = append(c, ci)
+		}
+	}
+
+	return c, nil
 }
 
 // GetVolume satisfies server.Backend
