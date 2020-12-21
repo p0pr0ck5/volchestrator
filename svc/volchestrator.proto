@@ -4,6 +4,10 @@ import "google/protobuf/timestamp.proto";
 
 package volchestrator;
 
+enum NotificationType {
+  LeaseAvailable = 0;
+}
+
 message HeartbeatMessage {
   string id = 1;
 }
@@ -12,8 +16,28 @@ message HeartbeatResponse {
   string id = 1;
 }
 
+message LeaseRequest {
+  string clientId = 1;
+  string tag = 2;
+  string availabilityZone = 3;
+}
+
+message NotificationWatchMessage {
+  string id = 1;
+}
+
+message Notification {
+  string id = 1;
+  NotificationType type = 2;
+  string message = 3;
+}
+
 service Volchestrator {
   rpc Heartbeat(HeartbeatMessage) returns (HeartbeatResponse) {}
+
+  rpc WatchNotifications(NotificationWatchMessage) returns (stream Notification) {}
+
+  rpc SubmitLeaseRequest(LeaseRequest) returns (Empty) {}
 }
 
 enum ClientStatus {

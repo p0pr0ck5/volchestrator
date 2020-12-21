@@ -18,6 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VolchestratorClient interface {
 	Heartbeat(ctx context.Context, in *HeartbeatMessage, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	WatchNotifications(ctx context.Context, in *NotificationWatchMessage, opts ...grpc.CallOption) (Volchestrator_WatchNotificationsClient, error)
+	SubmitLeaseRequest(ctx context.Context, in *LeaseRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type volchestratorClient struct {
@@ -37,11 +39,54 @@ func (c *volchestratorClient) Heartbeat(ctx context.Context, in *HeartbeatMessag
 	return out, nil
 }
 
+func (c *volchestratorClient) WatchNotifications(ctx context.Context, in *NotificationWatchMessage, opts ...grpc.CallOption) (Volchestrator_WatchNotificationsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Volchestrator_ServiceDesc.Streams[0], "/volchestrator.Volchestrator/WatchNotifications", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &volchestratorWatchNotificationsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Volchestrator_WatchNotificationsClient interface {
+	Recv() (*Notification, error)
+	grpc.ClientStream
+}
+
+type volchestratorWatchNotificationsClient struct {
+	grpc.ClientStream
+}
+
+func (x *volchestratorWatchNotificationsClient) Recv() (*Notification, error) {
+	m := new(Notification)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *volchestratorClient) SubmitLeaseRequest(ctx context.Context, in *LeaseRequest, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/volchestrator.Volchestrator/SubmitLeaseRequest", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VolchestratorServer is the server API for Volchestrator service.
 // All implementations must embed UnimplementedVolchestratorServer
 // for forward compatibility
 type VolchestratorServer interface {
 	Heartbeat(context.Context, *HeartbeatMessage) (*HeartbeatResponse, error)
+	WatchNotifications(*NotificationWatchMessage, Volchestrator_WatchNotificationsServer) error
+	SubmitLeaseRequest(context.Context, *LeaseRequest) (*Empty, error)
 	mustEmbedUnimplementedVolchestratorServer()
 }
 
@@ -51,6 +96,12 @@ type UnimplementedVolchestratorServer struct {
 
 func (UnimplementedVolchestratorServer) Heartbeat(context.Context, *HeartbeatMessage) (*HeartbeatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
+}
+func (UnimplementedVolchestratorServer) WatchNotifications(*NotificationWatchMessage, Volchestrator_WatchNotificationsServer) error {
+	return status.Errorf(codes.Unimplemented, "method WatchNotifications not implemented")
+}
+func (UnimplementedVolchestratorServer) SubmitLeaseRequest(context.Context, *LeaseRequest) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitLeaseRequest not implemented")
 }
 func (UnimplementedVolchestratorServer) mustEmbedUnimplementedVolchestratorServer() {}
 
@@ -83,6 +134,45 @@ func _Volchestrator_Heartbeat_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Volchestrator_WatchNotifications_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(NotificationWatchMessage)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VolchestratorServer).WatchNotifications(m, &volchestratorWatchNotificationsServer{stream})
+}
+
+type Volchestrator_WatchNotificationsServer interface {
+	Send(*Notification) error
+	grpc.ServerStream
+}
+
+type volchestratorWatchNotificationsServer struct {
+	grpc.ServerStream
+}
+
+func (x *volchestratorWatchNotificationsServer) Send(m *Notification) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _Volchestrator_SubmitLeaseRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LeaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorServer).SubmitLeaseRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.Volchestrator/SubmitLeaseRequest",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorServer).SubmitLeaseRequest(ctx, req.(*LeaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Volchestrator_ServiceDesc is the grpc.ServiceDesc for Volchestrator service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -94,8 +184,18 @@ var Volchestrator_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Heartbeat",
 			Handler:    _Volchestrator_Heartbeat_Handler,
 		},
+		{
+			MethodName: "SubmitLeaseRequest",
+			Handler:    _Volchestrator_SubmitLeaseRequest_Handler,
+		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "WatchNotifications",
+			Handler:       _Volchestrator_WatchNotifications_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "svc/volchestrator.proto",
 }
 

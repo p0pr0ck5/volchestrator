@@ -20,12 +20,30 @@ type Volume struct {
 	AvailabilityZone string
 }
 
+// NotificationType defines the type of notification sent to the client
+// during streaming
+type NotificationType int
+
+const (
+	// UnknownType is a base value
+	UnknownType NotificationType = iota
+)
+
+// Notification is a message to be passed to the client
+type Notification struct {
+	ID      string
+	Type    NotificationType
+	Message string
+}
+
 // Server interacts with clients to manage volume leases
 type Server struct {
 	svc.UnimplementedVolchestratorServer
 	svc.UnimplementedVolchestratorAdminServer
 
 	b Backend
+
+	notifCh chan Notification
 }
 
 // Backend defines functions implemented by the data store
@@ -44,7 +62,8 @@ type Backend interface {
 // NewServer creates a new Server with a given Backend
 func NewServer(b Backend) *Server {
 	return &Server{
-		b: b,
+		b:       b,
+		notifCh: make(chan Notification),
 	}
 }
 
@@ -90,6 +109,7 @@ func ClientFilterByStatus(status ClientStatus) ClientFilterFunc {
 
 // Init starts background routines
 func (s *Server) Init() {
+	// TODO wire up clean shutdown
 	go func() {
 		t := time.NewTicker(time.Second * heartbeatTTL)
 
@@ -142,6 +162,29 @@ func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.H
 	}
 
 	return res, nil
+}
+
+// WatchNotifications is called for a client to watch notifications
+func (s *Server) WatchNotifications(msg *svc.NotificationWatchMessage,
+	stream svc.Volchestrator_WatchNotificationsServer) error {
+
+	// TODO wire up clean shutdown
+	for {
+		select {
+		case notification := <-s.notifCh:
+			if notification.ID == msg.Id {
+				n := &svc.Notification{
+					Id:      notification.ID,
+					Type:    svc.NotificationType(notification.Type),
+					Message: notification.Message,
+				}
+
+				if err := stream.Send(n); err != nil {
+					log.Println(err)
+				}
+			}
+		}
+	}
 }
 
 // ListClients returns the ClientMap info
