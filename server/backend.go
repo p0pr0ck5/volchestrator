@@ -2,6 +2,7 @@ package server
 
 // Backend defines functions implemented by the data store
 type Backend interface {
+	AddClient(string) error
 	UpdateClient(string, ClientStatus) error
 	RemoveClient(string) error
 	Clients(ClientFilterFunc) ([]ClientInfo, error)

@@ -68,6 +68,7 @@ func (s *Server) Prune() {
 		if d > time.Second*tombstoneTTL {
 			log.Printf("Removing %s with diff %v", client.ID, d)
 			s.b.RemoveClient(client.ID)
+			close(s.notifChMap[client.ID])
 			delete(s.notifChMap, client.ID)
 		}
 	}
@@ -87,7 +88,7 @@ func (s *Server) Prune() {
 
 // Register adds a new client
 func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.Empty, error) {
-	err := s.b.UpdateClient(req.Id, Unknown) // TODO make add client
+	err := s.b.AddClient(req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +97,6 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.E
 	s.notifChMap[req.Id] = ch
 
 	go func() {
-		time.Sleep(time.Second)
 		s.notifChMap[req.Id] <- Notification{
 			ID:      randstr.Hex(16),
 			Type:    UnknownType,

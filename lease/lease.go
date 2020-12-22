@@ -6,6 +6,7 @@ const defaultLeaseTTL = 60 // 60 seconds
 
 // LeaseRequest represets a client's desire to lease a given volume
 type LeaseRequest struct {
+	LeaseRequestID         string
 	ClientID               string
 	VolumeTag              string
 	VolumeAvailabilityZone string

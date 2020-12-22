@@ -6,8 +6,8 @@ import "time"
 type ClientStatus int
 
 const (
-	// Unknown indicates the client status is unknown
-	Unknown ClientStatus = iota
+	// UnknownStatus indicates the client status is unknown
+	UnknownStatus ClientStatus = iota
 
 	// Alive indicates the client is alive
 	Alive

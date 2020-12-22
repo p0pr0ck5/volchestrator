@@ -11,7 +11,7 @@ import (
 
 // MemoryBackend implements server.Backend
 type MemoryBackend struct {
-	volumeMap map[string]*server.Volume
+	volumeMap *VolumeMap
 
 	clientMap *ClientMap
 }
@@ -19,8 +19,23 @@ type MemoryBackend struct {
 // NewMemoryBackend creates an initialized empty MemoryBackend
 func NewMemoryBackend() *MemoryBackend {
 	m := &MemoryBackend{
-		volumeMap: make(map[string]*server.Volume),
+		volumeMap: NewVolumeMap(),
 		clientMap: NewClientMap(),
+	}
+
+	return m
+}
+
+// VolumeMap holds information about registered volumes
+type VolumeMap struct {
+	m map[string]*server.Volume
+	l sync.Mutex
+}
+
+// NewVolumeMap returns an initialized VolumeMap
+func NewVolumeMap() *VolumeMap {
+	m := &VolumeMap{
+		m: make(map[string]*server.Volume),
 	}
 
 	return m
@@ -41,18 +56,33 @@ func NewClientMap() *ClientMap {
 	return m
 }
 
+// AddClient adds a Client to the backend if it doesn't already exist
+func (m *MemoryBackend) AddClient(id string) error {
+	m.clientMap.l.Lock()
+	defer m.clientMap.l.Unlock()
+
+	if _, exists := m.clientMap.m[id]; exists {
+		return fmt.Errorf("Client %q already exists in memory backend", id)
+	}
+
+	m.clientMap.m[id] = server.ClientInfo{
+		ID:        id,
+		Status:    server.UnknownStatus,
+		FirstSeen: time.Now(),
+	}
+
+	return nil
+}
+
 // UpdateClient updates the client info for a given client
 func (m *MemoryBackend) UpdateClient(id string, status server.ClientStatus) error {
 	m.clientMap.l.Lock()
 	defer m.clientMap.l.Unlock()
 
 	var client server.ClientInfo
-	var ok bool
-	if client, ok = m.clientMap.m[id]; !ok {
-		client = server.ClientInfo{
-			ID:        id,
-			FirstSeen: time.Now(),
-		}
+	var exists bool
+	if client, exists = m.clientMap.m[id]; !exists {
+		return fmt.Errorf("Client %q does not exist in memory backend", id)
 	}
 
 	client.LastSeen = time.Now()
@@ -90,7 +120,10 @@ func (m *MemoryBackend) Clients(f server.ClientFilterFunc) ([]server.ClientInfo,
 
 // GetVolume satisfies server.Backend
 func (m *MemoryBackend) GetVolume(id string) (*server.Volume, error) {
-	v, ok := m.volumeMap[id]
+	m.volumeMap.l.Lock()
+	defer m.volumeMap.l.Unlock()
+
+	v, ok := m.volumeMap.m[id]
 	if !ok {
 		log.Printf("No volume %q found in memory map\n", id)
 	}
@@ -100,9 +133,12 @@ func (m *MemoryBackend) GetVolume(id string) (*server.Volume, error) {
 
 // ListVolumes satisfies server.Backend
 func (m *MemoryBackend) ListVolumes() ([]*server.Volume, error) {
+	m.volumeMap.l.Lock()
+	defer m.volumeMap.l.Unlock()
+
 	volumes := []*server.Volume{}
 
-	for _, volume := range m.volumeMap {
+	for _, volume := range m.volumeMap.m {
 		volumes = append(volumes, volume)
 	}
 
@@ -111,33 +147,42 @@ func (m *MemoryBackend) ListVolumes() ([]*server.Volume, error) {
 
 // AddVolume satisfies server.Backend
 func (m *MemoryBackend) AddVolume(volume *server.Volume) error {
-	if _, exists := m.volumeMap[volume.ID]; exists {
+	m.volumeMap.l.Lock()
+	defer m.volumeMap.l.Unlock()
+
+	if _, exists := m.volumeMap.m[volume.ID]; exists {
 		return fmt.Errorf("Volume %q already exists in memory backend", volume.ID)
 	}
 
-	m.volumeMap[volume.ID] = volume
+	m.volumeMap.m[volume.ID] = volume
 
 	return nil
 }
 
 // UpdateVolume satisfies server.Backend
 func (m *MemoryBackend) UpdateVolume(volume *server.Volume) error {
-	if _, exists := m.volumeMap[volume.ID]; !exists {
+	m.volumeMap.l.Lock()
+	defer m.volumeMap.l.Unlock()
+
+	if _, exists := m.volumeMap.m[volume.ID]; !exists {
 		return fmt.Errorf("Volume %q does not exist in memory backend", volume.ID)
 	}
 
-	m.volumeMap[volume.ID] = volume
+	m.volumeMap.m[volume.ID] = volume
 
 	return nil
 }
 
 // DeleteVolume satisfies server.Backend
 func (m *MemoryBackend) DeleteVolume(id string) error {
-	if _, exists := m.volumeMap[id]; !exists {
+	m.volumeMap.l.Lock()
+	defer m.volumeMap.l.Unlock()
+
+	if _, exists := m.volumeMap.m[id]; !exists {
 		return fmt.Errorf("Volume %q does not exist in memory backend", id)
 	}
 
-	delete(m.volumeMap, id)
+	delete(m.volumeMap.m, id)
 
 	return nil
 }
