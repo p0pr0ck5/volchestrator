@@ -2,38 +2,24 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/thanhpk/randstr"
 
 	svc "github.com/p0pr0ck5/volchestrator/svc"
 )
 
 const heartbeatTTL = 5  // 5 seconds
-const tombstoneTTL = 30 // 30 seconds
+const tombstoneTTL = 10 // 10 seconds
 
 // Volume represents a definition of an EBS volume in the data store
 type Volume struct {
 	ID               string
 	Tags             []string
 	AvailabilityZone string
-}
-
-// NotificationType defines the type of notification sent to the client
-// during streaming
-type NotificationType int
-
-const (
-	// UnknownType is a base value
-	UnknownType NotificationType = iota
-)
-
-// Notification is a message to be passed to the client
-type Notification struct {
-	ID      string
-	Type    NotificationType
-	Message string
 }
 
 // Server interacts with clients to manage volume leases
@@ -43,67 +29,14 @@ type Server struct {
 
 	b Backend
 
-	notifCh chan Notification
-}
-
-// Backend defines functions implemented by the data store
-type Backend interface {
-	UpdateClient(string, ClientStatus) error
-	RemoveClient(string) error
-	Clients(ClientFilterFunc) ([]ClientInfo, error)
-
-	GetVolume(id string) (*Volume, error)
-	ListVolumes() ([]*Volume, error)
-	AddVolume(*Volume) error
-	UpdateVolume(*Volume) error
-	DeleteVolume(id string) error
+	notifChMap map[string]chan Notification
 }
 
 // NewServer creates a new Server with a given Backend
 func NewServer(b Backend) *Server {
 	return &Server{
-		b:       b,
-		notifCh: make(chan Notification),
-	}
-}
-
-// ClientStatus describes client's current status
-type ClientStatus int
-
-const (
-	// Unknown indicates the client status is unknown
-	Unknown ClientStatus = iota
-
-	// Alive indicates the client is alive
-	Alive
-
-	// Dead indicate the client is dead/unresponsive
-	Dead
-
-	// Left indicates the client intentionally left
-	Left
-)
-
-// ClientInfo details information about a given client
-type ClientInfo struct {
-	ID        string
-	Status    ClientStatus
-	FirstSeen time.Time
-	LastSeen  time.Time
-}
-
-// ClientFilterFunc is a function to filter a list of clients based on a given condition
-type ClientFilterFunc func(ClientInfo) bool
-
-// ClientFilterAll returns all clients
-func ClientFilterAll(ci ClientInfo) bool {
-	return true
-}
-
-// ClientFilterByStatus returns clients that match a given status
-func ClientFilterByStatus(status ClientStatus) ClientFilterFunc {
-	return func(ci ClientInfo) bool {
-		return ci.Status == status
+		b:          b,
+		notifChMap: make(map[string]chan Notification),
 	}
 }
 
@@ -135,6 +68,7 @@ func (s *Server) Prune() {
 		if d > time.Second*tombstoneTTL {
 			log.Printf("Removing %s with diff %v", client.ID, d)
 			s.b.RemoveClient(client.ID)
+			delete(s.notifChMap, client.ID)
 		}
 	}
 
@@ -149,6 +83,28 @@ func (s *Server) Prune() {
 			s.b.UpdateClient(client.ID, Dead)
 		}
 	}
+}
+
+// Register adds a new client
+func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.Empty, error) {
+	err := s.b.UpdateClient(req.Id, Unknown) // TODO make add client
+	if err != nil {
+		return nil, err
+	}
+
+	ch := make(chan Notification)
+	s.notifChMap[req.Id] = ch
+
+	go func() {
+		time.Sleep(time.Second)
+		s.notifChMap[req.Id] <- Notification{
+			ID:      randstr.Hex(16),
+			Type:    UnknownType,
+			Message: fmt.Sprintf("Initial notification for client %q", req.Id),
+		}
+	}()
+
+	return &svc.Empty{}, nil
 }
 
 // Heartbeat handles client HeartbeatMessages
@@ -168,23 +124,27 @@ func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.H
 func (s *Server) WatchNotifications(msg *svc.NotificationWatchMessage,
 	stream svc.Volchestrator_WatchNotificationsServer) error {
 
-	// TODO wire up clean shutdown
-	for {
-		select {
-		case notification := <-s.notifCh:
-			if notification.ID == msg.Id {
-				n := &svc.Notification{
-					Id:      notification.ID,
-					Type:    svc.NotificationType(notification.Type),
-					Message: notification.Message,
-				}
+	ch := s.notifChMap[msg.Id]
 
-				if err := stream.Send(n); err != nil {
-					log.Println(err)
-				}
-			}
+	if ch == nil {
+		return fmt.Errorf("Unknown ID %q", msg.Id)
+	}
+
+	for notification := range ch {
+		n := &svc.Notification{
+			Id:      notification.ID,
+			Type:    svc.NotificationType(notification.Type),
+			Message: notification.Message,
+		}
+
+		if err := stream.Send(n); err != nil {
+			log.Println(err)
 		}
 	}
+
+	log.Printf("Notification channel for %q closed\n", msg.Id)
+
+	return nil
 }
 
 // ListClients returns the ClientMap info

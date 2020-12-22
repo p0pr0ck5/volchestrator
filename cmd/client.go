@@ -31,6 +31,26 @@ import (
 var serverAddress string
 var clientID string
 
+func watch(client svc.VolchestratorClient) {
+	log.Println("Watching for notifications for client", clientID)
+
+	stream, err := client.WatchNotifications(context.Background(), &svc.NotificationWatchMessage{
+		Id: clientID,
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	for {
+		msg, err := stream.Recv()
+		if err != nil {
+			log.Println(err)
+		}
+
+		log.Printf("%+v\n", msg)
+	}
+}
+
 func clientRun(cmd *cobra.Command, args []string) {
 	if clientID == "" {
 		clientID = randstr.Hex(16)
@@ -43,6 +63,15 @@ func clientRun(cmd *cobra.Command, args []string) {
 	defer conn.Close()
 
 	client := svc.NewVolchestratorClient(conn)
+
+	_, err = client.Register(context.Background(), &svc.RegisterMessage{
+		Id: clientID,
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	go watch(client)
 
 	t := time.NewTicker(time.Millisecond * 500)
 

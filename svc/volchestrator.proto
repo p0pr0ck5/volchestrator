@@ -2,10 +2,16 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 
+option go_package = "github.com/p0pr0ck5/volchestrator/svc";
+
 package volchestrator;
 
 enum NotificationType {
   LeaseAvailable = 0;
+}
+
+message RegisterMessage {
+  string id = 1;
 }
 
 message HeartbeatMessage {
@@ -33,6 +39,7 @@ message Notification {
 }
 
 service Volchestrator {
+  rpc Register(RegisterMessage) returns (Empty) {}
   rpc Heartbeat(HeartbeatMessage) returns (HeartbeatResponse) {}
 
   rpc WatchNotifications(NotificationWatchMessage) returns (stream Notification) {}
