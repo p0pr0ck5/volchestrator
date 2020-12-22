@@ -44,7 +44,7 @@ func watch(client svc.VolchestratorClient) {
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
-			log.Println(err)
+			log.Fatalln(err)
 		}
 
 		log.Printf("%+v\n", msg)
@@ -72,6 +72,14 @@ func clientRun(cmd *cobra.Command, args []string) {
 	}
 
 	go watch(client)
+
+	go func() {
+		client.SubmitLeaseRequest(context.Background(), &svc.LeaseRequest{
+			ClientId:         clientID,
+			Tag:              "foo",
+			AvailabilityZone: "us-west-2a",
+		})
+	}()
 
 	t := time.NewTicker(time.Millisecond * 500)
 

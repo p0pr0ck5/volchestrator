@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/p0pr0ck5/volchestrator/lease"
 	"github.com/p0pr0ck5/volchestrator/server"
 )
 
@@ -14,28 +15,16 @@ type MemoryBackend struct {
 	volumeMap *VolumeMap
 
 	clientMap *ClientMap
+
+	leaseRequestMap *LeaseRequestMap
 }
 
 // NewMemoryBackend creates an initialized empty MemoryBackend
 func NewMemoryBackend() *MemoryBackend {
 	m := &MemoryBackend{
-		volumeMap: NewVolumeMap(),
-		clientMap: NewClientMap(),
-	}
-
-	return m
-}
-
-// VolumeMap holds information about registered volumes
-type VolumeMap struct {
-	m map[string]*server.Volume
-	l sync.Mutex
-}
-
-// NewVolumeMap returns an initialized VolumeMap
-func NewVolumeMap() *VolumeMap {
-	m := &VolumeMap{
-		m: make(map[string]*server.Volume),
+		volumeMap:       NewVolumeMap(),
+		clientMap:       NewClientMap(),
+		leaseRequestMap: NewLeaseRequestMap(),
 	}
 
 	return m
@@ -116,6 +105,50 @@ func (m *MemoryBackend) Clients(f server.ClientFilterFunc) ([]server.ClientInfo,
 	}
 
 	return c, nil
+}
+
+// LeaseRequestMap holds information about LeaseRequests
+type LeaseRequestMap struct {
+	m map[string]*lease.LeaseRequest
+	l sync.Mutex
+}
+
+// NewLeaseRequestMap returns an initialized LeaseRequestMap
+func NewLeaseRequestMap() *LeaseRequestMap {
+	m := &LeaseRequestMap{
+		m: make(map[string]*lease.LeaseRequest),
+	}
+
+	return m
+}
+
+// AddLeaseRequest adds a LeaseRequest to the backend
+func (m *MemoryBackend) AddLeaseRequest(request *lease.LeaseRequest) error {
+	m.leaseRequestMap.l.Lock()
+	defer m.leaseRequestMap.l.Unlock()
+
+	if _, exists := m.leaseRequestMap.m[request.LeaseRequestID]; exists {
+		return fmt.Errorf("Lease request %q already exists in memory backend", request.LeaseRequestID)
+	}
+
+	m.leaseRequestMap.m[request.LeaseRequestID] = request
+
+	return nil
+}
+
+// VolumeMap holds information about registered volumes
+type VolumeMap struct {
+	m map[string]*server.Volume
+	l sync.Mutex
+}
+
+// NewVolumeMap returns an initialized VolumeMap
+func NewVolumeMap() *VolumeMap {
+	m := &VolumeMap{
+		m: make(map[string]*server.Volume),
+	}
+
+	return m
 }
 
 // GetVolume satisfies server.Backend

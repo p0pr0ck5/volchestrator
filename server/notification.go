@@ -7,6 +7,8 @@ type NotificationType int
 const (
 	// UnknownType is a base value
 	UnknownType NotificationType = iota
+
+	LeaseRequestAck
 )
 
 // Notification is a message to be passed to the client

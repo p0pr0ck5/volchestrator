@@ -9,6 +9,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/thanhpk/randstr"
 
+	"github.com/p0pr0ck5/volchestrator/lease"
 	svc "github.com/p0pr0ck5/volchestrator/svc"
 )
 
@@ -251,4 +252,33 @@ func (s *Server) DeleteVolume(ctx context.Context, volumeID *svc.VolumeID) (*svc
 	err := s.b.DeleteVolume(volumeID.Id)
 
 	return &svc.Empty{}, err
+}
+
+// SubmitLeaseRequest adds a LeaseRequest to the backend
+func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseRequest) (*svc.Empty, error) {
+	requestID := randstr.Hex(16)
+	err := s.b.AddLeaseRequest(&lease.LeaseRequest{
+		LeaseRequestID:         requestID,
+		ClientID:               request.ClientId,
+		VolumeTag:              request.Tag,
+		VolumeAvailabilityZone: request.AvailabilityZone,
+		TTL:                    time.Duration(time.Second * 60),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	notifCh, exists := s.notifChMap[request.ClientId]
+	if !exists {
+		log.Printf("No notification channel found for %q\n", request.ClientId)
+	}
+
+	notifCh <- Notification{
+		ID:      randstr.Hex(16),
+		Type:    LeaseRequestAck,
+		Message: fmt.Sprintf("Received LeaseRequest submission for %+v, ID: %s", request, requestID),
+	}
+
+	return &svc.Empty{}, nil
 }
