@@ -60,7 +60,7 @@ func (s *Server) Init() {
 func (s *Server) Prune() {
 	now := time.Now()
 
-	deadClients, err := s.b.Clients(ClientFilterByStatus(Dead))
+	deadClients, err := s.b.Clients(ClientFilterByStatus(DeadClientStatus))
 	if err != nil {
 		log.Println(err)
 	}
@@ -74,7 +74,7 @@ func (s *Server) Prune() {
 		}
 	}
 
-	aliveClients, err := s.b.Clients(ClientFilterByStatus(Alive))
+	aliveClients, err := s.b.Clients(ClientFilterByStatus(AliveClientStatus))
 	if err != nil {
 		log.Println(err)
 	}
@@ -82,7 +82,7 @@ func (s *Server) Prune() {
 		d := now.Sub(client.LastSeen)
 		if d > time.Second*heartbeatTTL {
 			log.Printf("Marking %s as dead with diff %v", client.ID, d)
-			s.b.UpdateClient(client.ID, Dead)
+			s.b.UpdateClient(client.ID, DeadClientStatus)
 		}
 	}
 }
@@ -100,7 +100,7 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.E
 	go func() {
 		s.notifChMap[req.Id] <- Notification{
 			ID:      randstr.Hex(16),
-			Type:    UnknownType,
+			Type:    UnknownNotificationType,
 			Message: fmt.Sprintf("Initial notification for client %q", req.Id),
 		}
 	}()
@@ -112,7 +112,7 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.E
 func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.HeartbeatResponse, error) {
 	log.Println("Seen", m.Id)
 
-	s.b.UpdateClient(m.Id, Alive)
+	s.b.UpdateClient(m.Id, AliveClientStatus)
 
 	res := &svc.HeartbeatResponse{
 		Id: m.Id,
@@ -276,7 +276,7 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 
 	notifCh <- Notification{
 		ID:      randstr.Hex(16),
-		Type:    LeaseRequestAck,
+		Type:    LeaseRequestAckNotificationType,
 		Message: fmt.Sprintf("Received LeaseRequest submission for %+v, ID: %s", request, requestID),
 	}
 

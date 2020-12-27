@@ -6,17 +6,17 @@ import "time"
 type ClientStatus int
 
 const (
-	// UnknownStatus indicates the client status is unknown
-	UnknownStatus ClientStatus = iota
+	// UnknownClientStatus indicates the client status is unknown
+	UnknownClientStatus ClientStatus = iota
 
-	// Alive indicates the client is alive
-	Alive
+	// AliveClientStatus indicates the client is alive
+	AliveClientStatus
 
-	// Dead indicate the client is dead/unresponsive
-	Dead
+	// DeadClientStatus indicate the client is dead/unresponsive
+	DeadClientStatus
 
-	// Left indicates the client intentionally left
-	Left
+	// LeftClientStatus indicates the client intentionally left
+	LeftClientStatus
 )
 
 // ClientInfo details information about a given client

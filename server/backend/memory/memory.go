@@ -56,7 +56,7 @@ func (m *MemoryBackend) AddClient(id string) error {
 
 	m.clientMap.m[id] = server.ClientInfo{
 		ID:        id,
-		Status:    server.UnknownStatus,
+		Status:    server.UnknownClientStatus,
 		FirstSeen: time.Now(),
 	}
 
