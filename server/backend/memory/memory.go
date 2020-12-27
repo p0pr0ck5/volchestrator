@@ -30,6 +30,12 @@ func NewMemoryBackend() *MemoryBackend {
 	return m
 }
 
+/*
+ *
+ * Client
+ *
+ */
+
 // ClientMap maps clients to their info
 type ClientMap struct {
 	m map[string]server.ClientInfo
@@ -43,6 +49,19 @@ func NewClientMap() *ClientMap {
 	}
 
 	return m
+}
+
+// GetClient returns a ClientInfo for a given client id
+func (m *MemoryBackend) GetClient(id string) (server.ClientInfo, error) {
+	m.clientMap.l.Lock()
+	defer m.clientMap.l.Unlock()
+
+	client, ok := m.clientMap.m[id]
+	if !ok {
+		log.Printf("No client %q found in memory map\n", id)
+	}
+
+	return client, nil
 }
 
 // AddClient adds a Client to the backend if it doesn't already exist
@@ -107,6 +126,12 @@ func (m *MemoryBackend) Clients(f server.ClientFilterFunc) ([]server.ClientInfo,
 	return c, nil
 }
 
+/*
+ *
+ * LeaseRequest
+ *
+ */
+
 // LeaseRequestMap holds information about LeaseRequests
 type LeaseRequestMap struct {
 	m map[string]*lease.LeaseRequest
@@ -135,6 +160,12 @@ func (m *MemoryBackend) AddLeaseRequest(request *lease.LeaseRequest) error {
 
 	return nil
 }
+
+/*
+ *
+ * Volume
+ *
+ */
 
 // VolumeMap holds information about registered volumes
 type VolumeMap struct {

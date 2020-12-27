@@ -13,6 +13,7 @@ type Backend interface {
 
 // ClientInterface defines functions for managing clients
 type ClientInterface interface {
+	GetClient(string) (ClientInfo, error)
 	AddClient(string) error
 	UpdateClient(string, ClientStatus) error
 	RemoveClient(string) error
