@@ -98,11 +98,11 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.E
 	s.notifChMap[req.Id] = ch
 
 	go func() {
-		s.notifChMap[req.Id] <- Notification{
+		s.writeNotification(ch, Notification{
 			ID:      randstr.Hex(16),
 			Type:    UnknownNotificationType,
 			Message: fmt.Sprintf("Initial notification for client %q", req.Id),
-		}
+		})
 	}()
 
 	return &svc.Empty{}, nil
@@ -274,11 +274,15 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 		log.Printf("No notification channel found for %q\n", request.ClientId)
 	}
 
-	notifCh <- Notification{
+	s.writeNotification(notifCh, Notification{
 		ID:      randstr.Hex(16),
 		Type:    LeaseRequestAckNotificationType,
 		Message: fmt.Sprintf("Received LeaseRequest submission for %+v, ID: %s", request, requestID),
-	}
+	})
 
 	return &svc.Empty{}, nil
+}
+
+func (s *Server) writeNotification(ch chan Notification, n Notification) {
+	ch <- n
 }
