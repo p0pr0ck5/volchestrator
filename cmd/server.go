@@ -31,7 +31,7 @@ import (
 var address string
 
 func run(cmd *cobra.Command, args []string) {
-	b := memory.NewMemoryBackend()
+	b := memory.New()
 	s := server.NewServer(b)
 	s.Init()
 

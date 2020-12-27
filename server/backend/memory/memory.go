@@ -10,8 +10,8 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server"
 )
 
-// MemoryBackend implements server.Backend
-type MemoryBackend struct {
+// Backend implements server.Backend
+type Backend struct {
 	volumeMap *VolumeMap
 
 	clientMap *ClientMap
@@ -19,9 +19,9 @@ type MemoryBackend struct {
 	leaseRequestMap *LeaseRequestMap
 }
 
-// NewMemoryBackend creates an initialized empty MemoryBackend
-func NewMemoryBackend() *MemoryBackend {
-	m := &MemoryBackend{
+// New creates an initialized empty Backend
+func New() *Backend {
+	m := &Backend{
 		volumeMap:       NewVolumeMap(),
 		clientMap:       NewClientMap(),
 		leaseRequestMap: NewLeaseRequestMap(),
@@ -52,7 +52,7 @@ func NewClientMap() *ClientMap {
 }
 
 // GetClient returns a ClientInfo for a given client id
-func (m *MemoryBackend) GetClient(id string) (server.ClientInfo, error) {
+func (m *Backend) GetClient(id string) (server.ClientInfo, error) {
 	m.clientMap.l.Lock()
 	defer m.clientMap.l.Unlock()
 
@@ -65,7 +65,7 @@ func (m *MemoryBackend) GetClient(id string) (server.ClientInfo, error) {
 }
 
 // AddClient adds a Client to the backend if it doesn't already exist
-func (m *MemoryBackend) AddClient(id string) error {
+func (m *Backend) AddClient(id string) error {
 	m.clientMap.l.Lock()
 	defer m.clientMap.l.Unlock()
 
@@ -83,7 +83,7 @@ func (m *MemoryBackend) AddClient(id string) error {
 }
 
 // UpdateClient updates the client info for a given client
-func (m *MemoryBackend) UpdateClient(id string, status server.ClientStatus) error {
+func (m *Backend) UpdateClient(id string, status server.ClientStatus) error {
 	m.clientMap.l.Lock()
 	defer m.clientMap.l.Unlock()
 
@@ -102,7 +102,7 @@ func (m *MemoryBackend) UpdateClient(id string, status server.ClientStatus) erro
 }
 
 // RemoveClient deletes a given client from the ClientMap
-func (m *MemoryBackend) RemoveClient(id string) error {
+func (m *Backend) RemoveClient(id string) error {
 	m.clientMap.l.Lock()
 	defer m.clientMap.l.Unlock()
 
@@ -112,7 +112,7 @@ func (m *MemoryBackend) RemoveClient(id string) error {
 }
 
 // Clients returns a list of server.ClientInfo
-func (m *MemoryBackend) Clients(f server.ClientFilterFunc) ([]server.ClientInfo, error) {
+func (m *Backend) Clients(f server.ClientFilterFunc) ([]server.ClientInfo, error) {
 	m.clientMap.l.Lock()
 	defer m.clientMap.l.Unlock()
 
@@ -148,7 +148,7 @@ func NewLeaseRequestMap() *LeaseRequestMap {
 }
 
 // AddLeaseRequest adds a LeaseRequest to the backend
-func (m *MemoryBackend) AddLeaseRequest(request *lease.LeaseRequest) error {
+func (m *Backend) AddLeaseRequest(request *lease.LeaseRequest) error {
 	m.leaseRequestMap.l.Lock()
 	defer m.leaseRequestMap.l.Unlock()
 
@@ -183,7 +183,7 @@ func NewVolumeMap() *VolumeMap {
 }
 
 // GetVolume satisfies server.Backend
-func (m *MemoryBackend) GetVolume(id string) (*server.Volume, error) {
+func (m *Backend) GetVolume(id string) (*server.Volume, error) {
 	m.volumeMap.l.Lock()
 	defer m.volumeMap.l.Unlock()
 
@@ -196,7 +196,7 @@ func (m *MemoryBackend) GetVolume(id string) (*server.Volume, error) {
 }
 
 // ListVolumes satisfies server.Backend
-func (m *MemoryBackend) ListVolumes() ([]*server.Volume, error) {
+func (m *Backend) ListVolumes() ([]*server.Volume, error) {
 	m.volumeMap.l.Lock()
 	defer m.volumeMap.l.Unlock()
 
@@ -210,7 +210,7 @@ func (m *MemoryBackend) ListVolumes() ([]*server.Volume, error) {
 }
 
 // AddVolume satisfies server.Backend
-func (m *MemoryBackend) AddVolume(volume *server.Volume) error {
+func (m *Backend) AddVolume(volume *server.Volume) error {
 	m.volumeMap.l.Lock()
 	defer m.volumeMap.l.Unlock()
 
@@ -224,7 +224,7 @@ func (m *MemoryBackend) AddVolume(volume *server.Volume) error {
 }
 
 // UpdateVolume satisfies server.Backend
-func (m *MemoryBackend) UpdateVolume(volume *server.Volume) error {
+func (m *Backend) UpdateVolume(volume *server.Volume) error {
 	m.volumeMap.l.Lock()
 	defer m.volumeMap.l.Unlock()
 
@@ -238,7 +238,7 @@ func (m *MemoryBackend) UpdateVolume(volume *server.Volume) error {
 }
 
 // DeleteVolume satisfies server.Backend
-func (m *MemoryBackend) DeleteVolume(id string) error {
+func (m *Backend) DeleteVolume(id string) error {
 	m.volumeMap.l.Lock()
 	defer m.volumeMap.l.Unlock()
 
