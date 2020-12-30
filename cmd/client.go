@@ -47,7 +47,7 @@ func watch(client svc.VolchestratorClient) {
 			log.Fatalln(err)
 		}
 
-		log.Printf("%+v\n", msg)
+		log.Printf("Received notification: '%+v'\n", msg)
 	}
 }
 
