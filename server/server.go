@@ -16,13 +16,6 @@ import (
 const heartbeatTTL = 5  // 5 seconds
 const tombstoneTTL = 10 // 10 seconds
 
-// Volume represents a definition of an EBS volume in the data store
-type Volume struct {
-	ID               string
-	Tags             []string
-	AvailabilityZone string
-}
-
 // Server interacts with clients to manage volume leases
 type Server struct {
 	svc.UnimplementedVolchestratorServer
@@ -194,7 +187,7 @@ func (s *Server) GetVolume(ctx context.Context, volumeID *svc.VolumeID) (*svc.Vo
 
 // ListVolumes returns all volumes currently in the backend
 func (s *Server) ListVolumes(ctx context.Context, e *svc.Empty) (*svc.VolumeList, error) {
-	volumes, err := s.b.ListVolumes()
+	volumes, err := s.b.ListVolumes(VolumeFilterAll)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +201,7 @@ func (s *Server) ListVolumes(ctx context.Context, e *svc.Empty) (*svc.VolumeList
 			Id:               volume.ID,
 			Tags:             volume.Tags,
 			AvailabilityZone: volume.AvailabilityZone,
+			Status:           svc.VolumeStatus(volume.Status),
 		})
 	}
 
@@ -220,6 +214,7 @@ func (s *Server) AddVolume(ctx context.Context, volume *svc.Volume) (*svc.Volume
 		ID:               volume.Id,
 		Tags:             volume.Tags,
 		AvailabilityZone: volume.AvailabilityZone,
+		Status:           UnknownVolumeStatus,
 	}
 
 	err := s.b.AddVolume(v)
@@ -283,4 +278,22 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 
 func (s *Server) writeNotification(ch chan Notification, n Notification) {
 	ch <- n
+}
+
+func (s *Server) iterateLeaseRequests() {
+	volumes, err := s.b.ListVolumes(VolumeFilterByStatus(AvailableVolumeStatus))
+	if err != nil {
+		log.Println(err)
+	}
+
+	for _, volume := range volumes {
+		f := func(v *Volume) []*lease.LeaseRequest {
+			return []*lease.LeaseRequest{}
+		}
+		sort := func(v []*lease.LeaseRequest) []*lease.LeaseRequest {
+			return v
+		}
+		requests := f(volume)
+		_ /*sortedRequests :*/ = sort(requests)
+	}
 }

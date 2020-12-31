@@ -161,6 +161,21 @@ func (m *Backend) AddLeaseRequest(request *lease.LeaseRequest) error {
 	return nil
 }
 
+// ListLeaseRequests returns a list of lease.LeaseRequest
+func (m *Backend) ListLeaseRequests(f lease.LeaseRequestFilterFunc) ([]*lease.LeaseRequest, error) {
+	m.leaseRequestMap.l.Lock()
+	defer m.leaseRequestMap.l.Unlock()
+
+	var l []*lease.LeaseRequest
+	for _, lr := range m.leaseRequestMap.m {
+		if f(*lr) {
+			l = append(l, lr)
+		}
+	}
+
+	return l, nil
+}
+
 /*
  *
  * Volume
@@ -196,14 +211,16 @@ func (m *Backend) GetVolume(id string) (*server.Volume, error) {
 }
 
 // ListVolumes satisfies server.Backend
-func (m *Backend) ListVolumes() ([]*server.Volume, error) {
+func (m *Backend) ListVolumes(f server.VolumeFilterFunc) ([]*server.Volume, error) {
 	m.volumeMap.l.Lock()
 	defer m.volumeMap.l.Unlock()
 
 	volumes := []*server.Volume{}
 
 	for _, volume := range m.volumeMap.m {
-		volumes = append(volumes, volume)
+		if f(*volume) {
+			volumes = append(volumes, volume)
+		}
 	}
 
 	return volumes, nil

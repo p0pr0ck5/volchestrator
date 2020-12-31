@@ -20,3 +20,12 @@ type Lease struct {
 	VolumeID string
 	Expires  time.Time
 }
+
+// LeaseRequestFilterFunc is a function to filter a list of LeaseRequests
+// based on a given condition
+type LeaseRequestFilterFunc func(LeaseRequest) bool
+
+// LeaseRequestFilterAll returns all LeaseRequests
+func LeaseRequestFilterAll(l LeaseRequest) bool {
+	return true
+}

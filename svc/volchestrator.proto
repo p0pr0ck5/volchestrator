@@ -48,10 +48,10 @@ service Volchestrator {
 }
 
 enum ClientStatus {
-  UNKNOWN = 0;
-  ALIVE = 1;
-  DEAD = 2;
-  LEFT = 3;
+  CLIENTUNKNOWN = 0;
+  CLIENTALIVE = 1;
+  CLIENTDEAD = 2;
+  CLIENTLEFT = 3;
 }
 
 message ClientInfo {
@@ -67,6 +67,13 @@ message ClientList {
 
 message Empty {}
 
+enum VolumeStatus {
+  VOLUMEUNKNOWN = 0;
+  VOLUMEAVAILABLE = 1;
+  VOLUMELEASEPENDING = 2;
+  VOLUMELEASED = 3;
+}
+
 message VolumeID {
   string id = 1;
 }
@@ -75,6 +82,7 @@ message Volume {
   string id = 1;
   repeated string tags = 2;
   string availabilityZone = 3;
+  VolumeStatus status = 4;
 }
 
 message VolumeList {
