@@ -20,6 +20,7 @@ type VolchestratorClient interface {
 	Register(ctx context.Context, in *RegisterMessage, opts ...grpc.CallOption) (*Empty, error)
 	Heartbeat(ctx context.Context, in *HeartbeatMessage, opts ...grpc.CallOption) (*HeartbeatResponse, error)
 	WatchNotifications(ctx context.Context, in *NotificationWatchMessage, opts ...grpc.CallOption) (Volchestrator_WatchNotificationsClient, error)
+	Acknowledge(ctx context.Context, in *Acknowledgement, opts ...grpc.CallOption) (*Empty, error)
 	SubmitLeaseRequest(ctx context.Context, in *LeaseRequest, opts ...grpc.CallOption) (*Empty, error)
 }
 
@@ -81,6 +82,15 @@ func (x *volchestratorWatchNotificationsClient) Recv() (*Notification, error) {
 	return m, nil
 }
 
+func (c *volchestratorClient) Acknowledge(ctx context.Context, in *Acknowledgement, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/volchestrator.Volchestrator/Acknowledge", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *volchestratorClient) SubmitLeaseRequest(ctx context.Context, in *LeaseRequest, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, "/volchestrator.Volchestrator/SubmitLeaseRequest", in, out, opts...)
@@ -97,6 +107,7 @@ type VolchestratorServer interface {
 	Register(context.Context, *RegisterMessage) (*Empty, error)
 	Heartbeat(context.Context, *HeartbeatMessage) (*HeartbeatResponse, error)
 	WatchNotifications(*NotificationWatchMessage, Volchestrator_WatchNotificationsServer) error
+	Acknowledge(context.Context, *Acknowledgement) (*Empty, error)
 	SubmitLeaseRequest(context.Context, *LeaseRequest) (*Empty, error)
 	mustEmbedUnimplementedVolchestratorServer()
 }
@@ -113,6 +124,9 @@ func (UnimplementedVolchestratorServer) Heartbeat(context.Context, *HeartbeatMes
 }
 func (UnimplementedVolchestratorServer) WatchNotifications(*NotificationWatchMessage, Volchestrator_WatchNotificationsServer) error {
 	return status.Errorf(codes.Unimplemented, "method WatchNotifications not implemented")
+}
+func (UnimplementedVolchestratorServer) Acknowledge(context.Context, *Acknowledgement) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Acknowledge not implemented")
 }
 func (UnimplementedVolchestratorServer) SubmitLeaseRequest(context.Context, *LeaseRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitLeaseRequest not implemented")
@@ -187,6 +201,24 @@ func (x *volchestratorWatchNotificationsServer) Send(m *Notification) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Volchestrator_Acknowledge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Acknowledgement)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorServer).Acknowledge(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.Volchestrator/Acknowledge",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorServer).Acknowledge(ctx, req.(*Acknowledgement))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Volchestrator_SubmitLeaseRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LeaseRequest)
 	if err := dec(in); err != nil {
@@ -219,6 +251,10 @@ var Volchestrator_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Heartbeat",
 			Handler:    _Volchestrator_Heartbeat_Handler,
+		},
+		{
+			MethodName: "Acknowledge",
+			Handler:    _Volchestrator_Acknowledge_Handler,
 		},
 		{
 			MethodName: "SubmitLeaseRequest",

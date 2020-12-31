@@ -48,6 +48,14 @@ func watch(client svc.VolchestratorClient) {
 		}
 
 		log.Printf("Received notification: '%+v'\n", msg)
+
+		_, err = client.Acknowledge(context.Background(), &svc.Acknowledgement{
+			Id: msg.Id,
+		})
+		if err != nil {
+			log.Fatalln(err)
+		}
+		log.Println("Acknowledged", msg.Id)
 	}
 }
 

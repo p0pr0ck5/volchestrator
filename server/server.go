@@ -24,13 +24,16 @@ type Server struct {
 	b Backend
 
 	notifChMap map[string]chan Notification
+
+	notifAckChMap map[string]chan struct{}
 }
 
 // NewServer creates a new Server with a given Backend
 func NewServer(b Backend) *Server {
 	return &Server{
-		b:          b,
-		notifChMap: make(map[string]chan Notification),
+		b:             b,
+		notifChMap:    make(map[string]chan Notification),
+		notifAckChMap: make(map[string]chan struct{}),
 	}
 }
 
@@ -138,6 +141,22 @@ func (s *Server) WatchNotifications(msg *svc.NotificationWatchMessage,
 	log.Printf("Notification channel for %q closed\n", msg.Id)
 
 	return nil
+}
+
+// Acknowledge handles an acknowledgement from the client of a Notification
+func (s *Server) Acknowledge(ctx context.Context, msg *svc.Acknowledgement) (*svc.Empty, error) {
+	ch, exists := s.notifAckChMap[msg.Id]
+	if !exists {
+		err := fmt.Errorf("Failed to acknowledge %q, channel does not exist", msg.Id)
+		return nil, err
+	}
+
+	log.Println("Received ack", msg.Id)
+
+	close(ch)
+	delete(s.notifAckChMap, msg.Id)
+
+	return &svc.Empty{}, nil
 }
 
 // ListClients returns the ClientMap info
@@ -277,6 +296,7 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 }
 
 func (s *Server) writeNotification(ch chan Notification, n Notification) {
+	s.notifAckChMap[n.ID] = make(chan struct{})
 	ch <- n
 }
 
@@ -293,7 +313,67 @@ func (s *Server) iterateLeaseRequests() {
 		sort := func(v []*lease.LeaseRequest) []*lease.LeaseRequest {
 			return v
 		}
+
+		// get all requests relevant to this volume
+		// (e.g., search by tag and az)
 		requests := f(volume)
-		_ /*sortedRequests :*/ = sort(requests)
+
+		// sort by some sort of (configurable) fn
+		// filter out blacklisted clients
+		// sieve duplicate clients in the slice
+		sortedRequests := sort(requests)
+
+		go s.tryLease(volume, sortedRequests)
+	}
+}
+
+// given a list of LeaseRequest, try to find a lease
+func (s *Server) tryLease(volume *Volume, leases []*lease.LeaseRequest) {
+	// set the volume status to pending
+	volume.Status = LeasePendingVolumeStatus
+	err := s.b.UpdateVolume(volume)
+	if err != nil {
+		log.Println(err)
+	}
+
+	for _, l := range leases {
+		// notify the client the lease is available
+		notifCh, exists := s.notifChMap[l.ClientID]
+		if !exists {
+			log.Printf("No notification channel found for %q\n", l.ClientID)
+			continue
+		}
+
+		n := NewNotification(
+			LeaseAvailableNotificationType,
+			l.LeaseRequestID,
+		)
+		s.writeNotification(notifCh, n)
+
+		t := time.After(lease.LeaseAvailableAckTTL)
+		ackCh := s.notifAckChMap[n.ID]
+
+		select {
+		case <-t:
+			log.Println("TIMEOUT")
+			continue
+		case <-ackCh:
+			log.Println("we haz lease")
+
+			s.writeNotification(notifCh, NewNotification(
+				LeaseNotificationType,
+				"", // format a message with the volume and lease id
+			))
+
+			volume.Status = LeasedVolumeStatus
+			err = s.b.UpdateVolume(volume)
+			if err != nil {
+				log.Println(err)
+			}
+
+			// TODO setup heartbeat watcher for the lease
+
+			// TODO update the LeaseRequest in the backend
+		}
 	}
 }

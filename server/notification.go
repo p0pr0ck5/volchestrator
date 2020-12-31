@@ -14,6 +14,12 @@ const (
 
 	// LeaseRequestAckNotificationType is an acknowledgement of receipt of a LeaseRequest submission
 	LeaseRequestAckNotificationType
+
+	// LeaseAvailableNotificationType is an announcement that a lease is available for a given volume
+	LeaseAvailableNotificationType
+
+	// LeaseNotificationType is an announcement that a lease has been allocated to a client
+	LeaseNotificationType
 )
 
 // Notification is a message to be passed to the client

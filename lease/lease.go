@@ -4,6 +4,9 @@ import "time"
 
 const defaultLeaseTTL = 60 // 60 seconds
 
+// LeaseAvailableAckTTL defines how long to wait for a client to ack a LeaseAvailable notification
+const LeaseAvailableAckTTL = time.Duration(5) * time.Second // 5 seconds
+
 // LeaseRequest represets a client's desire to lease a given volume
 type LeaseRequest struct {
 	LeaseRequestID         string
