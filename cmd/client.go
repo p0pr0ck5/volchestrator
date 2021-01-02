@@ -57,6 +57,7 @@ func watch(client svc.VolchestratorClient) {
 			err = f(client, msg)
 			if err != nil {
 				log.Println("Error executing callback:", err)
+				continue
 			}
 		}
 
@@ -79,6 +80,20 @@ func registerNotificationHandlers() {
 				Tag:              "foo",
 				AvailabilityZone: "us-west-2a",
 			})
+			return nil
+		},
+	}
+
+	notifHandlers[svc.NotificationType_NOTIFICATIONLEASEAVAILABLE] = []notificationHandler{
+		func(client svc.VolchestratorClient, msg *svc.Notification) error {
+			log.Println("I shouldn't need to do anything here right?")
+			return nil
+		},
+	}
+
+	notifHandlers[svc.NotificationType_NOTIFICATIONLEASE] = []notificationHandler{
+		func(client svc.VolchestratorClient, msg *svc.Notification) error {
+			log.Printf("I haz lease! %+v\n", msg)
 			return nil
 		},
 	}

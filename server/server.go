@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -233,6 +234,7 @@ func (s *Server) GetVolume(ctx context.Context, volumeID *svc.VolumeID) (*svc.Vo
 		Id:               volume.ID,
 		Tags:             volume.Tags,
 		AvailabilityZone: volume.AvailabilityZone,
+		Status:           svc.VolumeStatus(volume.Status),
 	}
 
 	return v, nil
@@ -267,7 +269,7 @@ func (s *Server) AddVolume(ctx context.Context, volume *svc.Volume) (*svc.Volume
 		ID:               volume.Id,
 		Tags:             volume.Tags,
 		AvailabilityZone: volume.AvailabilityZone,
-		Status:           UnknownVolumeStatus,
+		Status:           VolumeStatus(volume.Status),
 	}
 
 	err := s.b.AddVolume(v)
@@ -284,6 +286,7 @@ func (s *Server) UpdateVolume(ctx context.Context, volume *svc.Volume) (*svc.Vol
 		ID:               volume.Id,
 		Tags:             volume.Tags,
 		AvailabilityZone: volume.AvailabilityZone,
+		Status:           VolumeStatus(volume.Status),
 	}
 
 	err := s.b.UpdateVolume(v)
@@ -326,6 +329,8 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 		fmt.Sprintf("Received LeaseRequest submission for %+v, ID: %s", request, requestID),
 	))
 
+	go s.iterateLeaseRequests()
+
 	return &svc.Empty{}, nil
 }
 
@@ -334,35 +339,64 @@ func (s *Server) writeNotification(ch chan Notification, n Notification) {
 	ch <- n
 }
 
+func contains(needle string, haystack []string) bool {
+	for _, h := range haystack {
+		if needle == h {
+			return true
+		}
+	}
+
+	return false
+}
+
+func filterLeaseRequests(volume *Volume, requests []*lease.LeaseRequest) []*lease.LeaseRequest {
+	matchedRequests := []*lease.LeaseRequest{}
+
+	for _, request := range requests {
+		match := request.VolumeAvailabilityZone == volume.AvailabilityZone &&
+			contains(request.VolumeTag, volume.Tags)
+
+		if match {
+			matchedRequests = append(matchedRequests, request)
+		}
+	}
+
+	return matchedRequests
+}
+
 func (s *Server) iterateLeaseRequests() {
+	log.Println("iterateLeaseRequests")
+
 	volumes, err := s.b.ListVolumes(VolumeFilterByStatus(AvailableVolumeStatus))
 	if err != nil {
 		log.Println(err)
+		return
 	}
 
 	for _, volume := range volumes {
-		f := func(v *Volume) []*lease.LeaseRequest {
-			return []*lease.LeaseRequest{}
-		}
-		sort := func(v []*lease.LeaseRequest) []*lease.LeaseRequest {
-			return v
+		log.Println("Try to lease", volume.ID)
+		requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterAll)
+		if err != nil {
+			log.Println(err)
+			continue
 		}
 
 		// get all requests relevant to this volume
 		// (e.g., search by tag and az)
-		requests := f(volume)
+		filteredRequests := filterLeaseRequests(volume, requests)
 
-		// sort by some sort of (configurable) fn
+		// TODO sort by some sort of (configurable) fn
 		// filter out blacklisted clients
 		// sieve duplicate clients in the slice
-		sortedRequests := sort(requests)
 
-		go s.tryLease(volume, sortedRequests)
+		// there will be a race around trying to use the same LeaseRequest
+		// for multiple matching volumes
+		go s.tryLease(volume, filteredRequests)
 	}
 }
 
 // given a list of LeaseRequest, try to find a lease
-func (s *Server) tryLease(volume *Volume, leases []*lease.LeaseRequest) {
+func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 	// set the volume status to pending
 	volume.Status = LeasePendingVolumeStatus
 	err := s.b.UpdateVolume(volume)
@@ -370,17 +404,17 @@ func (s *Server) tryLease(volume *Volume, leases []*lease.LeaseRequest) {
 		log.Println(err)
 	}
 
-	for _, l := range leases {
+	for _, request := range requests {
 		// notify the client the lease is available
-		notifCh, exists := s.notifChMap[l.ClientID]
+		notifCh, exists := s.notifChMap[request.ClientID]
 		if !exists {
-			log.Printf("No notification channel found for %q\n", l.ClientID)
+			log.Printf("No notification channel found for %q\n", request.ClientID)
 			continue
 		}
 
 		n := NewNotification(
 			LeaseAvailableNotificationType,
-			l.LeaseRequestID,
+			request.LeaseRequestID,
 		)
 		s.writeNotification(notifCh, n)
 
@@ -394,9 +428,11 @@ func (s *Server) tryLease(volume *Volume, leases []*lease.LeaseRequest) {
 		case <-ackCh:
 			log.Println("we haz lease")
 
+			m, _ := json.Marshal(volume)
+
 			s.writeNotification(notifCh, NewNotification(
 				LeaseNotificationType,
-				"", // format a message with the volume and lease id
+				string(m), // format a message with the volume and lease id
 			))
 
 			volume.Status = LeasedVolumeStatus
