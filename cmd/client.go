@@ -31,6 +31,10 @@ import (
 var serverAddress string
 var clientID string
 
+type notificationHandler func(svc.VolchestratorClient, *svc.Notification) error
+
+var notifHandlers map[svc.NotificationType][]notificationHandler
+
 func watch(client svc.VolchestratorClient) {
 	log.Println("Watching for notifications for client", clientID)
 
@@ -49,6 +53,13 @@ func watch(client svc.VolchestratorClient) {
 
 		log.Printf("Received notification: '%+v'\n", msg)
 
+		for _, f := range notifHandlers[msg.Type] {
+			err = f(client, msg)
+			if err != nil {
+				log.Println("Error executing callback:", err)
+			}
+		}
+
 		_, err = client.Acknowledge(context.Background(), &svc.Acknowledgement{
 			Id: msg.Id,
 		})
@@ -59,7 +70,24 @@ func watch(client svc.VolchestratorClient) {
 	}
 }
 
+func registerNotificationHandlers() {
+	notifHandlers[svc.NotificationType_NOTIFICATIONLEASEREQUESTEXPIRED] = []notificationHandler{
+		func(client svc.VolchestratorClient, msg *svc.Notification) error {
+			log.Println("Handling renewal of", msg.Message)
+			client.SubmitLeaseRequest(context.Background(), &svc.LeaseRequest{
+				ClientId:         clientID,
+				Tag:              "foo",
+				AvailabilityZone: "us-west-2a",
+			})
+			return nil
+		},
+	}
+}
+
 func clientRun(cmd *cobra.Command, args []string) {
+	notifHandlers = make(map[svc.NotificationType][]notificationHandler)
+	registerNotificationHandlers()
+
 	if clientID == "" {
 		clientID = randstr.Hex(16)
 	}

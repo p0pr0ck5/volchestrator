@@ -52,8 +52,7 @@ func (s *Server) Init() {
 	}()
 }
 
-// Prune cleans up the client list
-func (s *Server) Prune() {
+func (s *Server) pruneClients() {
 	now := time.Now()
 
 	deadClients, err := s.b.Clients(ClientFilterByStatus(DeadClientStatus))
@@ -81,6 +80,41 @@ func (s *Server) Prune() {
 			s.b.UpdateClient(client.ID, DeadClientStatus)
 		}
 	}
+}
+
+func (s *Server) pruneLeaseRequests() {
+	requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterAll)
+	if err != nil {
+		log.Println(err)
+	}
+
+	now := time.Now()
+
+	for _, request := range requests {
+		log.Printf("Check %+v\n", request)
+		if request.Expires.Before(now) {
+			log.Println("Expiring", request.LeaseRequestID)
+
+			s.b.DeleteLeaseRequest(request.LeaseRequestID)
+
+			notifCh, exists := s.notifChMap[request.ClientID]
+			if !exists {
+				log.Println("No notification channel found for", request.ClientID)
+				continue
+			}
+
+			s.writeNotification(notifCh, NewNotification(
+				LeaseRequestExpiredNotificationType,
+				request.LeaseRequestID,
+			))
+		}
+	}
+}
+
+// Prune cleans up various resources
+func (s *Server) Prune() {
+	s.pruneClients()
+	s.pruneLeaseRequests()
 }
 
 // Register adds a new client
@@ -275,7 +309,7 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 		ClientID:               request.ClientId,
 		VolumeTag:              request.Tag,
 		VolumeAvailabilityZone: request.AvailabilityZone,
-		TTL:                    time.Duration(time.Second * 60),
+		Expires:                time.Now().Add(lease.DefaultLeaseTTL),
 	})
 
 	if err != nil {

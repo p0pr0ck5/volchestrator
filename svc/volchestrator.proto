@@ -7,7 +7,11 @@ option go_package = "github.com/p0pr0ck5/volchestrator/svc";
 package volchestrator;
 
 enum NotificationType {
-  LeaseAvailable = 0;
+  NOTIFICATIONUNKNOWN = 0;
+  NOTIFICATIONLEASEREQUESTACK = 1;
+  NOTIFICATIONLEASEREQUESTEXPIRED = 2;
+  NOTIFICATIONLEASEAVAILABLE = 3;
+  NOTIFICATIONLEASE = 4;
 }
 
 message RegisterMessage {

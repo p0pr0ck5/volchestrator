@@ -15,6 +15,10 @@ const (
 	// LeaseRequestAckNotificationType is an acknowledgement of receipt of a LeaseRequest submission
 	LeaseRequestAckNotificationType
 
+	// LeaseRequestExpiredNotificationType is an announcement that a lease request has expired
+	// and needs to be renwed
+	LeaseRequestExpiredNotificationType
+
 	// LeaseAvailableNotificationType is an announcement that a lease is available for a given volume
 	LeaseAvailableNotificationType
 

@@ -176,6 +176,20 @@ func (m *Backend) ListLeaseRequests(f lease.LeaseRequestFilterFunc) ([]*lease.Le
 	return l, nil
 }
 
+// DeleteLeaseRequest removes a LeaseRequest from the backend
+func (m *Backend) DeleteLeaseRequest(leaseRequestID string) error {
+	m.leaseRequestMap.l.Lock()
+	defer m.leaseRequestMap.l.Unlock()
+
+	if _, exists := m.leaseRequestMap.m[leaseRequestID]; !exists {
+		return fmt.Errorf("Lease request %q does not exist in memory backend", leaseRequestID)
+	}
+
+	delete(m.leaseRequestMap.m, leaseRequestID)
+
+	return nil
+}
+
 /*
  *
  * Volume

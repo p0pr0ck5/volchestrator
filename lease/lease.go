@@ -2,7 +2,8 @@ package lease
 
 import "time"
 
-const defaultLeaseTTL = 60 // 60 seconds
+// DefaultLeaseTTL is the length LeaseRequests can stay alive before they need to be renewed
+const DefaultLeaseTTL = time.Duration(15) * time.Second // 60 seconds
 
 // LeaseAvailableAckTTL defines how long to wait for a client to ack a LeaseAvailable notification
 const LeaseAvailableAckTTL = time.Duration(5) * time.Second // 5 seconds
@@ -13,7 +14,7 @@ type LeaseRequest struct {
 	ClientID               string
 	VolumeTag              string
 	VolumeAvailabilityZone string
-	TTL                    time.Duration
+	Expires                time.Time
 }
 
 // Lease represents a lease of a volume to a client, for a given period of time
