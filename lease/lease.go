@@ -2,7 +2,7 @@ package lease
 
 import "time"
 
-// DefaultLeaseTTL is the length LeaseRequests can stay alive before they need to be renewed
+// DefaultLeaseTTL is the length LeaseRequests can stay alive before they need to be replaced
 const DefaultLeaseTTL = time.Duration(15) * time.Second // 60 seconds
 
 // LeaseAvailableAckTTL defines how long to wait for a client to ack a LeaseAvailable notification
@@ -32,4 +32,11 @@ type LeaseRequestFilterFunc func(LeaseRequest) bool
 // LeaseRequestFilterAll returns all LeaseRequests
 func LeaseRequestFilterAll(l LeaseRequest) bool {
 	return true
+}
+
+//LeaseRequestFilterByClient returns all LeaseRequests for a given client
+func LeaseRequestFilterByClient(id string) LeaseRequestFilterFunc {
+	return func(l LeaseRequest) bool {
+		return l.ClientID == id
+	}
 }

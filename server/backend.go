@@ -24,6 +24,7 @@ type ClientInterface interface {
 type LeaseInterface interface {
 	ListLeaseRequests(lease.LeaseRequestFilterFunc) ([]*lease.LeaseRequest, error)
 	AddLeaseRequest(*lease.LeaseRequest) error
+	UpdateLeaseRequest(*lease.LeaseRequest) error
 	DeleteLeaseRequest(string) error
 }
 

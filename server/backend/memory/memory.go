@@ -180,6 +180,20 @@ func (m *Backend) ListLeaseRequests(f lease.LeaseRequestFilterFunc) ([]*lease.Le
 	return l, nil
 }
 
+// UpdateLeaseRequest updates a LeaseRequest in the backend
+func (m *Backend) UpdateLeaseRequest(request *lease.LeaseRequest) error {
+	m.leaseRequestMap.l.Lock()
+	defer m.leaseRequestMap.l.Unlock()
+
+	if _, exists := m.leaseRequestMap.m[request.LeaseRequestID]; !exists {
+		return fmt.Errorf("Lease request %q does not exist in memory backend", request.LeaseRequestID)
+	}
+
+	m.leaseRequestMap.m[request.LeaseRequestID] = request
+
+	return nil
+}
+
 // DeleteLeaseRequest removes a LeaseRequest from the backend
 func (m *Backend) DeleteLeaseRequest(leaseRequestID string) error {
 	m.leaseRequestMap.l.Lock()

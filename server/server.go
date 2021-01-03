@@ -28,6 +28,8 @@ type Server struct {
 	notifChMap    map[string]chan Notification
 	notifAckChMap map[string]chan struct{}
 
+	iterateWatch chan struct{}
+
 	log *log.Logger
 }
 
@@ -37,6 +39,7 @@ func NewServer(b Backend) *Server {
 		b:             b,
 		notifChMap:    make(map[string]chan Notification),
 		notifAckChMap: make(map[string]chan struct{}),
+		iterateWatch:  make(chan struct{}),
 		log:           log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
 	}
 }
@@ -54,6 +57,8 @@ func (s *Server) Init() {
 			}
 		}
 	}()
+
+	go s._iterateLeaseRequests()
 }
 
 func (s *Server) pruneClients() {
@@ -137,9 +142,26 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.E
 
 // Heartbeat handles client HeartbeatMessages
 func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.HeartbeatResponse, error) {
-	s.log.Println("Seen", m.Id)
+	//s.log.Println("Seen", m.Id)
 
-	s.b.UpdateClient(m.Id, AliveClientStatus)
+	err := s.b.UpdateClient(m.Id, AliveClientStatus)
+	if err != nil {
+		s.log.Println(err)
+		return nil, err
+	}
+
+	requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterByClient(m.Id))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, request := range requests {
+		request.Expires = time.Now().Add(lease.DefaultLeaseTTL)
+		err = s.b.UpdateLeaseRequest(request)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	res := &svc.HeartbeatResponse{
 		Id: m.Id,
@@ -365,33 +387,42 @@ func filterLeaseRequests(volume *Volume, requests []*lease.LeaseRequest) []*leas
 }
 
 func (s *Server) iterateLeaseRequests() {
-	s.log.Println("iterateLeaseRequests")
+	s.iterateWatch <- struct{}{}
+}
 
-	volumes, err := s.b.ListVolumes(VolumeFilterByStatus(AvailableVolumeStatus))
-	if err != nil {
-		s.log.Println(err)
-		return
-	}
+func (s *Server) _iterateLeaseRequests() {
+	for {
+		select {
+		case <-s.iterateWatch:
+			s.log.Println("iterateLeaseRequests")
 
-	for _, volume := range volumes {
-		s.log.Println("Try to lease", volume.ID)
-		requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterAll)
-		if err != nil {
-			s.log.Println(err)
-			continue
+			volumes, err := s.b.ListVolumes(VolumeFilterByStatus(AvailableVolumeStatus))
+			if err != nil {
+				s.log.Println(err)
+				return
+			}
+
+			for _, volume := range volumes {
+				s.log.Println("Try to lease", volume.ID)
+				requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterAll)
+				if err != nil {
+					s.log.Println(err)
+					continue
+				}
+
+				// get all requests relevant to this volume
+				// (e.g., search by tag and az)
+				filteredRequests := filterLeaseRequests(volume, requests)
+
+				// TODO sort by some sort of (configurable) fn
+				// filter out blacklisted clients
+				// sieve duplicate clients in the slice
+
+				// there will be a race around trying to use the same LeaseRequest
+				// for multiple matching volumes
+				go s.tryLease(volume, filteredRequests)
+			}
 		}
-
-		// get all requests relevant to this volume
-		// (e.g., search by tag and az)
-		filteredRequests := filterLeaseRequests(volume, requests)
-
-		// TODO sort by some sort of (configurable) fn
-		// filter out blacklisted clients
-		// sieve duplicate clients in the slice
-
-		// there will be a race around trying to use the same LeaseRequest
-		// for multiple matching volumes
-		go s.tryLease(volume, filteredRequests)
 	}
 }
 
@@ -443,6 +474,8 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 			// TODO setup heartbeat watcher for the lease
 
 			// TODO update the LeaseRequest in the backend
+
+			return // lol
 		}
 	}
 }
