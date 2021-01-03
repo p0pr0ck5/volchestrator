@@ -19,6 +19,7 @@ limitations under the License.
 import (
 	"log"
 	"net"
+	"os"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -34,6 +35,8 @@ func run(cmd *cobra.Command, args []string) {
 	b := memory.New()
 	s := server.NewServer(b)
 	s.Init()
+
+	log := log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 
 	listen, err := net.Listen("tcp", address)
 	if err != nil {

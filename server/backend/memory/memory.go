@@ -3,6 +3,7 @@ package memory
 import (
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -17,6 +18,8 @@ type Backend struct {
 	clientMap *ClientMap
 
 	leaseRequestMap *LeaseRequestMap
+
+	log *log.Logger
 }
 
 // New creates an initialized empty Backend
@@ -25,6 +28,7 @@ func New() *Backend {
 		volumeMap:       NewVolumeMap(),
 		clientMap:       NewClientMap(),
 		leaseRequestMap: NewLeaseRequestMap(),
+		log:             log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
 	}
 
 	return m
@@ -58,7 +62,7 @@ func (m *Backend) GetClient(id string) (server.ClientInfo, error) {
 
 	client, ok := m.clientMap.m[id]
 	if !ok {
-		log.Printf("No client %q found in memory map\n", id)
+		m.log.Printf("No client %q found in memory map\n", id)
 	}
 
 	return client, nil
@@ -218,7 +222,7 @@ func (m *Backend) GetVolume(id string) (*server.Volume, error) {
 
 	v, ok := m.volumeMap.m[id]
 	if !ok {
-		log.Printf("No volume %q found in memory map\n", id)
+		m.log.Printf("No volume %q found in memory map\n", id)
 	}
 
 	return v, nil

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -24,9 +25,10 @@ type Server struct {
 
 	b Backend
 
-	notifChMap map[string]chan Notification
-
+	notifChMap    map[string]chan Notification
 	notifAckChMap map[string]chan struct{}
+
+	log *log.Logger
 }
 
 // NewServer creates a new Server with a given Backend
@@ -35,6 +37,7 @@ func NewServer(b Backend) *Server {
 		b:             b,
 		notifChMap:    make(map[string]chan Notification),
 		notifAckChMap: make(map[string]chan struct{}),
+		log:           log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
 	}
 }
 
@@ -58,12 +61,12 @@ func (s *Server) pruneClients() {
 
 	deadClients, err := s.b.Clients(ClientFilterByStatus(DeadClientStatus))
 	if err != nil {
-		log.Println(err)
+		s.log.Println(err)
 	}
 	for _, client := range deadClients {
 		d := now.Sub(client.LastSeen)
 		if d > time.Second*tombstoneTTL {
-			log.Printf("Removing %s with diff %v", client.ID, d)
+			s.log.Printf("Removing %s with diff %v", client.ID, d)
 			s.b.RemoveClient(client.ID)
 			close(s.notifChMap[client.ID])
 			delete(s.notifChMap, client.ID)
@@ -72,12 +75,12 @@ func (s *Server) pruneClients() {
 
 	aliveClients, err := s.b.Clients(ClientFilterByStatus(AliveClientStatus))
 	if err != nil {
-		log.Println(err)
+		s.log.Println(err)
 	}
 	for _, client := range aliveClients {
 		d := now.Sub(client.LastSeen)
 		if d > time.Second*heartbeatTTL {
-			log.Printf("Marking %s as dead with diff %v", client.ID, d)
+			s.log.Printf("Marking %s as dead with diff %v", client.ID, d)
 			s.b.UpdateClient(client.ID, DeadClientStatus)
 		}
 	}
@@ -86,21 +89,21 @@ func (s *Server) pruneClients() {
 func (s *Server) pruneLeaseRequests() {
 	requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterAll)
 	if err != nil {
-		log.Println(err)
+		s.log.Println(err)
 	}
 
 	now := time.Now()
 
 	for _, request := range requests {
-		log.Printf("Check %+v\n", request)
+		s.log.Printf("Check %+v\n", request)
 		if request.Expires.Before(now) {
-			log.Println("Expiring", request.LeaseRequestID)
+			s.log.Println("Expiring", request.LeaseRequestID)
 
 			s.b.DeleteLeaseRequest(request.LeaseRequestID)
 
 			notifCh, exists := s.notifChMap[request.ClientID]
 			if !exists {
-				log.Println("No notification channel found for", request.ClientID)
+				s.log.Println("No notification channel found for", request.ClientID)
 				continue
 			}
 
@@ -140,7 +143,7 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.E
 
 // Heartbeat handles client HeartbeatMessages
 func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.HeartbeatResponse, error) {
-	log.Println("Seen", m.Id)
+	s.log.Println("Seen", m.Id)
 
 	s.b.UpdateClient(m.Id, AliveClientStatus)
 
@@ -169,11 +172,11 @@ func (s *Server) WatchNotifications(msg *svc.NotificationWatchMessage,
 		}
 
 		if err := stream.Send(n); err != nil {
-			log.Println(err)
+			s.log.Println(err)
 		}
 	}
 
-	log.Printf("Notification channel for %q closed\n", msg.Id)
+	s.log.Printf("Notification channel for %q closed\n", msg.Id)
 
 	return nil
 }
@@ -186,7 +189,7 @@ func (s *Server) Acknowledge(ctx context.Context, msg *svc.Acknowledgement) (*sv
 		return nil, err
 	}
 
-	log.Println("Received ack", msg.Id)
+	s.log.Println("Received ack", msg.Id)
 
 	close(ch)
 	delete(s.notifAckChMap, msg.Id)
@@ -321,7 +324,7 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 
 	notifCh, exists := s.notifChMap[request.ClientId]
 	if !exists {
-		log.Printf("No notification channel found for %q\n", request.ClientId)
+		s.log.Printf("No notification channel found for %q\n", request.ClientId)
 	}
 
 	s.writeNotification(notifCh, NewNotification(
@@ -365,19 +368,19 @@ func filterLeaseRequests(volume *Volume, requests []*lease.LeaseRequest) []*leas
 }
 
 func (s *Server) iterateLeaseRequests() {
-	log.Println("iterateLeaseRequests")
+	s.log.Println("iterateLeaseRequests")
 
 	volumes, err := s.b.ListVolumes(VolumeFilterByStatus(AvailableVolumeStatus))
 	if err != nil {
-		log.Println(err)
+		s.log.Println(err)
 		return
 	}
 
 	for _, volume := range volumes {
-		log.Println("Try to lease", volume.ID)
+		s.log.Println("Try to lease", volume.ID)
 		requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterAll)
 		if err != nil {
-			log.Println(err)
+			s.log.Println(err)
 			continue
 		}
 
@@ -401,14 +404,14 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 	volume.Status = LeasePendingVolumeStatus
 	err := s.b.UpdateVolume(volume)
 	if err != nil {
-		log.Println(err)
+		s.log.Println(err)
 	}
 
 	for _, request := range requests {
 		// notify the client the lease is available
 		notifCh, exists := s.notifChMap[request.ClientID]
 		if !exists {
-			log.Printf("No notification channel found for %q\n", request.ClientID)
+			s.log.Printf("No notification channel found for %q\n", request.ClientID)
 			continue
 		}
 
@@ -423,10 +426,10 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 
 		select {
 		case <-t:
-			log.Println("TIMEOUT")
+			s.log.Println("TIMEOUT")
 			continue
 		case <-ackCh:
-			log.Println("we haz lease")
+			s.log.Println("we haz lease")
 
 			m, _ := json.Marshal(volume)
 
@@ -438,7 +441,7 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 			volume.Status = LeasedVolumeStatus
 			err = s.b.UpdateVolume(volume)
 			if err != nil {
-				log.Println(err)
+				s.log.Println(err)
 			}
 
 			// TODO setup heartbeat watcher for the lease
