@@ -101,13 +101,7 @@ func (s *Server) pruneLeaseRequests() {
 
 			s.b.DeleteLeaseRequest(request.LeaseRequestID)
 
-			notifCh, exists := s.notifChMap[request.ClientID]
-			if !exists {
-				s.log.Println("No notification channel found for", request.ClientID)
-				continue
-			}
-
-			s.writeNotification(notifCh, NewNotification(
+			s.writeNotification(request.ClientID, NewNotification(
 				LeaseRequestExpiredNotificationType,
 				request.LeaseRequestID,
 			))
@@ -132,7 +126,7 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.E
 	s.notifChMap[req.Id] = ch
 
 	go func() {
-		s.writeNotification(ch, NewNotification(
+		s.writeNotification(req.Id, NewNotification(
 			UnknownNotificationType,
 			fmt.Sprintf("Initial notification for client %q", req.Id),
 		))
@@ -322,12 +316,7 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 		return nil, err
 	}
 
-	notifCh, exists := s.notifChMap[request.ClientId]
-	if !exists {
-		s.log.Printf("No notification channel found for %q\n", request.ClientId)
-	}
-
-	s.writeNotification(notifCh, NewNotification(
+	s.writeNotification(request.ClientId, NewNotification(
 		LeaseRequestAckNotificationType,
 		fmt.Sprintf("Received LeaseRequest submission for %+v, ID: %s", request, requestID),
 	))
@@ -337,9 +326,17 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 	return &svc.Empty{}, nil
 }
 
-func (s *Server) writeNotification(ch chan Notification, n Notification) {
+func (s *Server) writeNotification(id string, n Notification) Notification {
+	ch, exists := s.notifChMap[id]
+	if !exists {
+		s.log.Printf("No notification channel found for %q\n", id)
+		return n
+	}
+
 	s.notifAckChMap[n.ID] = make(chan struct{})
 	ch <- n
+
+	return n
 }
 
 func contains(needle string, haystack []string) bool {
@@ -409,17 +406,16 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 
 	for _, request := range requests {
 		// notify the client the lease is available
-		notifCh, exists := s.notifChMap[request.ClientID]
+		_, exists := s.notifChMap[request.ClientID]
 		if !exists {
 			s.log.Printf("No notification channel found for %q\n", request.ClientID)
 			continue
 		}
 
-		n := NewNotification(
+		n := s.writeNotification(request.ClientID, NewNotification(
 			LeaseAvailableNotificationType,
 			request.LeaseRequestID,
-		)
-		s.writeNotification(notifCh, n)
+		))
 
 		t := time.After(lease.LeaseAvailableAckTTL)
 		ackCh := s.notifAckChMap[n.ID]
@@ -433,7 +429,7 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 
 			m, _ := json.Marshal(volume)
 
-			s.writeNotification(notifCh, NewNotification(
+			s.writeNotification(request.ClientID, NewNotification(
 				LeaseNotificationType,
 				string(m), // format a message with the volume and lease id
 			))
