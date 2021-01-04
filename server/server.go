@@ -25,6 +25,8 @@ type Server struct {
 
 	b Backend
 
+	r ResourceManager
+
 	notifChMap    map[string]chan Notification
 	notifAckChMap map[string]chan struct{}
 
@@ -34,9 +36,10 @@ type Server struct {
 }
 
 // NewServer creates a new Server with a given Backend
-func NewServer(b Backend) *Server {
+func NewServer(b Backend, r ResourceManager) *Server {
 	return &Server{
 		b:             b,
+		r:             r,
 		notifChMap:    make(map[string]chan Notification),
 		notifAckChMap: make(map[string]chan struct{}),
 		iterateWatch:  make(chan struct{}),
@@ -147,9 +150,12 @@ func (s *Server) assignLease(l *lease.Lease) error {
 		return err
 	}
 
-	// TODO kick the tires and light the fires
-
 	volume, err := s.b.GetVolume(l.VolumeID)
+	if err != nil {
+		return err
+	}
+
+	err = s.r.Associate(volume)
 	if err != nil {
 		return err
 	}
@@ -176,9 +182,12 @@ func (s *Server) releaseLease(l *lease.Lease) error {
 		return err
 	}
 
-	// TODO here is where we release the actual resource
-
 	v, err := s.b.GetVolume(l.VolumeID)
+	if err != nil {
+		return err
+	}
+
+	err = s.r.Disassociate(v)
 	if err != nil {
 		return err
 	}
@@ -587,13 +596,6 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 		case <-ackCh:
 			s.log.Println("we haz lease")
 
-			m, _ := json.Marshal(volume)
-
-			s.writeNotification(request.ClientID, NewNotification(
-				LeaseNotificationType,
-				string(m), // format a message with the volume and lease id
-			))
-
 			l := &lease.Lease{
 				LeaseID:  randstr.Hex(16),
 				ClientID: request.ClientID,
@@ -608,9 +610,24 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 				// TODO we're in a bad state here
 			}
 
-			s.assignLease(l)
+			err = s.assignLease(l)
+			if err != nil {
+				s.log.Println(err)
+				continue
+			}
 
-			s.b.DeleteLeaseRequest(request.LeaseRequestID)
+			err = s.b.DeleteLeaseRequest(request.LeaseRequestID)
+			if err != nil {
+				s.log.Println(err)
+				continue
+			}
+
+			m, _ := json.Marshal(volume)
+
+			s.writeNotification(request.ClientID, NewNotification(
+				LeaseNotificationType,
+				string(m), // format a message with the volume and lease id
+			))
 
 			return // lol
 		}

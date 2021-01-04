@@ -26,6 +26,7 @@ import (
 
 	"github.com/p0pr0ck5/volchestrator/server"
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
+	"github.com/p0pr0ck5/volchestrator/server/resource/timednop"
 	svc "github.com/p0pr0ck5/volchestrator/svc"
 )
 
@@ -33,7 +34,8 @@ var address string
 
 func run(cmd *cobra.Command, args []string) {
 	b := memory.New()
-	s := server.NewServer(b)
+	r := timednop.New()
+	s := server.NewServer(b, r)
 	s.Init()
 
 	log := log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
