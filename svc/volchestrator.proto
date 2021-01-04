@@ -98,6 +98,25 @@ message VolumeList {
   repeated Volume volumes = 1;
 }
 
+enum LeaseStatus {
+  LEASEUNKNOWN = 0;
+  LEASEASSIGNING = 1;
+  LEASEASSIGNED = 2;
+  LEASERELEASING = 3;
+}
+
+message Lease {
+  string leaseId = 1;
+  string clientId = 2;
+  string volumeId = 3;
+  google.protobuf.Timestamp expires = 4;
+  LeaseStatus status = 5;
+}
+
+message LeaseList {
+  repeated Lease leases = 1;
+}
+
 service VolchestratorAdmin {
   rpc ListClients(Empty) returns (ClientList) {}
 
@@ -106,4 +125,6 @@ service VolchestratorAdmin {
   rpc AddVolume(Volume) returns (Volume) {}
   rpc UpdateVolume(Volume) returns (Volume) {}
   rpc DeleteVolume(VolumeID) returns (Empty) {}
+
+  rpc ListLeases(Empty) returns (LeaseList) {}
 }

@@ -17,14 +17,6 @@ type LeaseRequest struct {
 	Expires                time.Time
 }
 
-// Lease represents a lease of a volume to a client, for a given period of time
-type Lease struct {
-	LeaseID  string
-	ClientID string
-	VolumeID string
-	Expires  time.Time
-}
-
 // LeaseRequestFilterFunc is a function to filter a list of LeaseRequests
 // based on a given condition
 type LeaseRequestFilterFunc func(LeaseRequest) bool
@@ -34,9 +26,45 @@ func LeaseRequestFilterAll(l LeaseRequest) bool {
 	return true
 }
 
-//LeaseRequestFilterByClient returns all LeaseRequests for a given client
+// LeaseRequestFilterByClient returns all LeaseRequests for a given client
 func LeaseRequestFilterByClient(id string) LeaseRequestFilterFunc {
 	return func(l LeaseRequest) bool {
+		return l.ClientID == id
+	}
+}
+
+type LeaseStatus int
+
+const (
+	LeaseStatusUnknown LeaseStatus = iota
+
+	LeaseStatusAssigning
+
+	LeaseStatusAssigned
+
+	LeaseStatusReleasing
+)
+
+// Lease represents a lease of a volume to a client, for a given period of time
+type Lease struct {
+	LeaseID  string
+	ClientID string
+	VolumeID string
+	Expires  time.Time
+	Status   LeaseStatus
+}
+
+// LeaseFilterFunc is a function to filter a list of Leases based on a given condition
+type LeaseFilterFunc func(Lease) bool
+
+// LeaseFilterAll returns all Leases
+func LeaseFilterAll(l Lease) bool {
+	return true
+}
+
+//LeaseFilterByClient returns all Leases for a given client
+func LeaseFilterByClient(id string) LeaseFilterFunc {
+	return func(l Lease) bool {
 		return l.ClientID == id
 	}
 }

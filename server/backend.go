@@ -26,6 +26,11 @@ type LeaseInterface interface {
 	AddLeaseRequest(*lease.LeaseRequest) error
 	UpdateLeaseRequest(*lease.LeaseRequest) error
 	DeleteLeaseRequest(string) error
+
+	AddLease(*lease.Lease) error
+	ListLeases(lease.LeaseFilterFunc) ([]*lease.Lease, error)
+	UpdateLease(*lease.Lease) error
+	DeleteLease(string) error
 }
 
 // VolumeInterface defines functions for managing volumes

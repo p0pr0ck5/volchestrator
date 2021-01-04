@@ -281,6 +281,7 @@ type VolchestratorAdminClient interface {
 	AddVolume(ctx context.Context, in *Volume, opts ...grpc.CallOption) (*Volume, error)
 	UpdateVolume(ctx context.Context, in *Volume, opts ...grpc.CallOption) (*Volume, error)
 	DeleteVolume(ctx context.Context, in *VolumeID, opts ...grpc.CallOption) (*Empty, error)
+	ListLeases(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*LeaseList, error)
 }
 
 type volchestratorAdminClient struct {
@@ -345,6 +346,15 @@ func (c *volchestratorAdminClient) DeleteVolume(ctx context.Context, in *VolumeI
 	return out, nil
 }
 
+func (c *volchestratorAdminClient) ListLeases(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*LeaseList, error) {
+	out := new(LeaseList)
+	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/ListLeases", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VolchestratorAdminServer is the server API for VolchestratorAdmin service.
 // All implementations must embed UnimplementedVolchestratorAdminServer
 // for forward compatibility
@@ -355,6 +365,7 @@ type VolchestratorAdminServer interface {
 	AddVolume(context.Context, *Volume) (*Volume, error)
 	UpdateVolume(context.Context, *Volume) (*Volume, error)
 	DeleteVolume(context.Context, *VolumeID) (*Empty, error)
+	ListLeases(context.Context, *Empty) (*LeaseList, error)
 	mustEmbedUnimplementedVolchestratorAdminServer()
 }
 
@@ -379,6 +390,9 @@ func (UnimplementedVolchestratorAdminServer) UpdateVolume(context.Context, *Volu
 }
 func (UnimplementedVolchestratorAdminServer) DeleteVolume(context.Context, *VolumeID) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteVolume not implemented")
+}
+func (UnimplementedVolchestratorAdminServer) ListLeases(context.Context, *Empty) (*LeaseList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListLeases not implemented")
 }
 func (UnimplementedVolchestratorAdminServer) mustEmbedUnimplementedVolchestratorAdminServer() {}
 
@@ -501,6 +515,24 @@ func _VolchestratorAdmin_DeleteVolume_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VolchestratorAdmin_ListLeases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorAdminServer).ListLeases(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.VolchestratorAdmin/ListLeases",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorAdminServer).ListLeases(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VolchestratorAdmin_ServiceDesc is the grpc.ServiceDesc for VolchestratorAdmin service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -531,6 +563,10 @@ var VolchestratorAdmin_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteVolume",
 			Handler:    _VolchestratorAdmin_DeleteVolume_Handler,
+		},
+		{
+			MethodName: "ListLeases",
+			Handler:    _VolchestratorAdmin_ListLeases_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

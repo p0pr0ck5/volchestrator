@@ -86,7 +86,7 @@ func registerNotificationHandlers() {
 
 	notifHandlers[svc.NotificationType_NOTIFICATIONLEASEAVAILABLE] = []notificationHandler{
 		func(client svc.VolchestratorClient, msg *svc.Notification) error {
-			log.Println("I shouldn't need to do anything here right?")
+			log.Println("I shouldn't need to do anything here right?") // because we ack the notification
 			return nil
 		},
 	}
@@ -94,6 +94,7 @@ func registerNotificationHandlers() {
 	notifHandlers[svc.NotificationType_NOTIFICATIONLEASE] = []notificationHandler{
 		func(client svc.VolchestratorClient, msg *svc.Notification) error {
 			log.Printf("I haz lease! %+v\n", msg)
+			// DO THE THING
 			return nil
 		},
 	}

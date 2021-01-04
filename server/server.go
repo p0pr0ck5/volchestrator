@@ -58,7 +58,7 @@ func (s *Server) Init() {
 		}
 	}()
 
-	go s._iterateLeaseRequests()
+	go s.watchLeaseRequestIterations()
 }
 
 func (s *Server) pruneClients() {
@@ -95,6 +95,7 @@ func (s *Server) pruneLeaseRequests() {
 	requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterAll)
 	if err != nil {
 		s.log.Println(err)
+		return
 	}
 
 	now := time.Now()
@@ -114,10 +115,95 @@ func (s *Server) pruneLeaseRequests() {
 	}
 }
 
+func (s *Server) pruneLeases() {
+	leases, err := s.b.ListLeases(lease.LeaseFilterAll)
+	if err != nil {
+		s.log.Println(err)
+		return
+	}
+
+	now := time.Now()
+
+	for _, l := range leases {
+		s.log.Printf("Check %+v\n", l)
+
+		if l.Expires.Before(now) {
+			s.log.Println("Lease", l.LeaseID, "expired")
+
+			// hook into release -> delete
+			err := s.releaseLease(l)
+			if err != nil {
+				s.log.Println(err)
+				continue
+			}
+		}
+	}
+}
+
+func (s *Server) assignLease(l *lease.Lease) error {
+	l.Status = lease.LeaseStatusAssigning
+	err := s.b.UpdateLease(l)
+	if err != nil {
+		return err
+	}
+
+	// TODO kick the tires and light the fires
+
+	volume, err := s.b.GetVolume(l.VolumeID)
+	if err != nil {
+		return err
+	}
+
+	volume.Status = LeasedVolumeStatus
+	err = s.b.UpdateVolume(volume)
+	if err != nil {
+		return err
+	}
+
+	l.Status = lease.LeaseStatusAssigned
+	err = s.b.UpdateLease(l)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Server) releaseLease(l *lease.Lease) error {
+	l.Status = lease.LeaseStatusReleasing
+	err := s.b.UpdateLease(l)
+	if err != nil {
+		return err
+	}
+
+	// TODO here is where we release the actual resource
+
+	v, err := s.b.GetVolume(l.VolumeID)
+	if err != nil {
+		return err
+	}
+
+	v.Status = AvailableVolumeStatus
+	err = s.b.UpdateVolume(v)
+	if err != nil {
+		return err
+	}
+
+	err = s.b.DeleteLease(l.LeaseID)
+	if err != nil {
+		return err
+	}
+
+	go s.iterateLeaseRequests()
+
+	return nil
+}
+
 // Prune cleans up various resources
 func (s *Server) Prune() {
 	s.pruneClients()
 	s.pruneLeaseRequests()
+	s.pruneLeases()
 }
 
 // Register adds a new client
@@ -158,6 +244,19 @@ func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.H
 	for _, request := range requests {
 		request.Expires = time.Now().Add(lease.DefaultLeaseTTL)
 		err = s.b.UpdateLeaseRequest(request)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	leases, err := s.b.ListLeases(lease.LeaseFilterByClient(m.Id))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, l := range leases {
+		l.Expires = time.Now().Add(lease.DefaultLeaseTTL)
+		err = s.b.UpdateLease(l)
 		if err != nil {
 			return nil, err
 		}
@@ -296,6 +395,8 @@ func (s *Server) AddVolume(ctx context.Context, volume *svc.Volume) (*svc.Volume
 		return nil, err
 	}
 
+	go s.iterateLeaseRequests()
+
 	return volume, nil
 }
 
@@ -319,6 +420,8 @@ func (s *Server) UpdateVolume(ctx context.Context, volume *svc.Volume) (*svc.Vol
 // DeleteVolume deletes a volume from the backend
 func (s *Server) DeleteVolume(ctx context.Context, volumeID *svc.VolumeID) (*svc.Empty, error) {
 	err := s.b.DeleteVolume(volumeID.Id)
+
+	// TODO verify status
 
 	return &svc.Empty{}, err
 }
@@ -346,6 +449,32 @@ func (s *Server) SubmitLeaseRequest(ctx context.Context, request *svc.LeaseReque
 	go s.iterateLeaseRequests()
 
 	return &svc.Empty{}, nil
+}
+
+// ListLeases returns all Leases in the backend
+func (s *Server) ListLeases(ctx context.Context, e *svc.Empty) (*svc.LeaseList, error) {
+	leases, err := s.b.ListLeases(lease.LeaseFilterAll)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &svc.LeaseList{}
+	l := []*svc.Lease{}
+
+	for _, lease := range leases {
+		e, _ := ptypes.TimestampProto(lease.Expires)
+		l = append(l, &svc.Lease{
+			LeaseId:  lease.LeaseID,
+			ClientId: lease.ClientID,
+			VolumeId: lease.VolumeID,
+			Expires:  e,
+			Status:   svc.LeaseStatus(lease.Status),
+		})
+	}
+
+	res.Leases = l
+
+	return res, nil
 }
 
 func (s *Server) writeNotification(id string, n Notification) Notification {
@@ -390,11 +519,11 @@ func (s *Server) iterateLeaseRequests() {
 	s.iterateWatch <- struct{}{}
 }
 
-func (s *Server) _iterateLeaseRequests() {
+func (s *Server) watchLeaseRequestIterations() {
 	for {
 		select {
 		case <-s.iterateWatch:
-			s.log.Println("iterateLeaseRequests")
+			s.log.Println("do iterateLeaseRequests")
 
 			volumes, err := s.b.ListVolumes(VolumeFilterByStatus(AvailableVolumeStatus))
 			if err != nil {
@@ -465,17 +594,33 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 				string(m), // format a message with the volume and lease id
 			))
 
-			volume.Status = LeasedVolumeStatus
-			err = s.b.UpdateVolume(volume)
+			l := &lease.Lease{
+				LeaseID:  randstr.Hex(16),
+				ClientID: request.ClientID,
+				VolumeID: volume.ID,
+				Expires:  time.Now().Add(lease.DefaultLeaseTTL),
+				Status:   lease.LeaseStatusAssigning,
+			}
+			err = s.b.AddLease(l)
 			if err != nil {
 				s.log.Println(err)
+				continue
+				// TODO we're in a bad state here
 			}
 
-			// TODO setup heartbeat watcher for the lease
+			s.assignLease(l)
 
-			// TODO update the LeaseRequest in the backend
+			s.b.DeleteLeaseRequest(request.LeaseRequestID)
 
 			return // lol
 		}
+	}
+
+	// set the volume status to available as we never found a lease
+	s.log.Println("Did not lease", volume.ID)
+	volume.Status = AvailableVolumeStatus
+	err = s.b.UpdateVolume(volume)
+	if err != nil {
+		s.log.Println(err)
 	}
 }

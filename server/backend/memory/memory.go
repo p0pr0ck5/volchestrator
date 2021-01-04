@@ -19,6 +19,8 @@ type Backend struct {
 
 	leaseRequestMap *LeaseRequestMap
 
+	leaseMap *LeaseMap
+
 	log *log.Logger
 }
 
@@ -28,6 +30,7 @@ func New() *Backend {
 		volumeMap:       NewVolumeMap(),
 		clientMap:       NewClientMap(),
 		leaseRequestMap: NewLeaseRequestMap(),
+		leaseMap:        NewLeaseMap(),
 		log:             log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
 	}
 
@@ -204,6 +207,84 @@ func (m *Backend) DeleteLeaseRequest(leaseRequestID string) error {
 	}
 
 	delete(m.leaseRequestMap.m, leaseRequestID)
+
+	return nil
+}
+
+/*
+ *
+ * Lease
+ *
+ */
+
+// LeaseMap holds information about leases
+type LeaseMap struct {
+	m map[string]*lease.Lease
+	l sync.Mutex
+}
+
+// NewLeaseMap returns an initialized LeaseMap
+func NewLeaseMap() *LeaseMap {
+	m := &LeaseMap{
+		m: make(map[string]*lease.Lease),
+	}
+
+	return m
+}
+
+// AddLease adds a Lease to the backend
+func (m *Backend) AddLease(lease *lease.Lease) error {
+	m.leaseMap.l.Lock()
+	defer m.leaseMap.l.Unlock()
+
+	if _, exists := m.leaseMap.m[lease.LeaseID]; exists {
+		return fmt.Errorf("Lease %q already exists in memory backend", lease.LeaseID)
+	}
+
+	m.leaseMap.m[lease.LeaseID] = lease
+
+	return nil
+}
+
+// ListLeases returns a list of lease.Lease
+func (m *Backend) ListLeases(f lease.LeaseFilterFunc) ([]*lease.Lease, error) {
+	m.leaseMap.l.Lock()
+	defer m.leaseMap.l.Unlock()
+
+	var l []*lease.Lease
+	for _, lr := range m.leaseMap.m {
+		if f(*lr) {
+			l = append(l, lr)
+		}
+	}
+
+	return l, nil
+}
+
+// UpdateLease updates a Lease in the backend
+func (m *Backend) UpdateLease(lease *lease.Lease) error {
+	m.leaseMap.l.Lock()
+	defer m.leaseMap.l.Unlock()
+
+	if _, exists := m.leaseMap.m[lease.LeaseID]; !exists {
+		return fmt.Errorf("Lease %q does not exist in memory backend", lease.LeaseID)
+	}
+
+	m.leaseMap.m[lease.LeaseID] = lease
+
+	return nil
+}
+
+// DeleteLease removes a Lease from the backend
+func (m *Backend) DeleteLease(leaseID string) error {
+	m.leaseMap.l.Lock()
+	defer m.leaseMap.l.Unlock()
+
+	if _, exists := m.leaseMap.m[leaseID]; !exists {
+		return fmt.Errorf("Lease %q does not exist in memory backend", leaseID)
+	}
+
+	delete(m.leaseMap.m, leaseID)
 
 	return nil
 }
