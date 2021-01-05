@@ -21,6 +21,9 @@ type Backend struct {
 
 	leaseMap *LeaseMap
 
+	notifChMap    map[string]chan server.Notification
+	notifAckChMap map[string]chan struct{}
+
 	log *log.Logger
 }
 
@@ -31,6 +34,8 @@ func New() *Backend {
 		clientMap:       NewClientMap(),
 		leaseRequestMap: NewLeaseRequestMap(),
 		leaseMap:        NewLeaseMap(),
+		notifChMap:      make(map[string]chan server.Notification),
+		notifAckChMap:   make(map[string]chan struct{}),
 		log:             log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
 	}
 
@@ -86,6 +91,8 @@ func (m *Backend) AddClient(id string) error {
 		FirstSeen: time.Now(),
 	}
 
+	m.notifChMap[id] = make(chan server.Notification)
+
 	return nil
 }
 
@@ -115,6 +122,9 @@ func (m *Backend) RemoveClient(id string) error {
 
 	delete(m.clientMap.m, id)
 
+	close(m.notifChMap[id])
+	delete(m.notifChMap, id)
+
 	return nil
 }
 
@@ -131,6 +141,57 @@ func (m *Backend) Clients(f server.ClientFilterFunc) ([]server.ClientInfo, error
 	}
 
 	return c, nil
+}
+
+// WriteNotification writes a Notification into a channel in a blocking manner
+func (m *Backend) WriteNotification(id string, n server.Notification) error {
+	ch, exists := m.notifChMap[id]
+	if !exists {
+		return fmt.Errorf("no notification channel found for %q", id)
+	}
+
+	ch <- n
+	m.notifAckChMap[n.ID] = make(chan struct{})
+
+	return nil
+}
+
+// WatchNotifications writes notifications to a given channel
+func (m *Backend) WatchNotifications(id string, ch chan<- server.Notification) error {
+	notifCh, exists := m.notifChMap[id]
+	if !exists {
+		return fmt.Errorf("unknown id %q", id)
+	}
+
+	for n := range notifCh {
+		ch <- n
+	}
+
+	return nil
+}
+
+// AckNotification acks a notification
+func (m *Backend) AckNotification(id string) error {
+	ch, exists := m.notifAckChMap[id]
+	if !exists {
+		return fmt.Errorf("failed to acknowledge %q, channel does not exist", id)
+	}
+
+	close(ch)
+	delete(m.notifAckChMap, id)
+
+	return nil
+}
+
+// WatchNotification returns a channel that will be closed when the
+// notification is acked
+func (m *Backend) WatchNotification(id string) (chan struct{}, error) {
+	ch, exists := m.notifAckChMap[id]
+	if !exists {
+		return nil, fmt.Errorf("channel does not exist")
+	}
+
+	return ch, nil
 }
 
 /*

@@ -18,6 +18,11 @@ type ClientInterface interface {
 	UpdateClient(string, ClientStatus) error
 	RemoveClient(string) error
 	Clients(ClientFilterFunc) ([]ClientInfo, error)
+
+	WriteNotification(string, Notification) error
+	WatchNotifications(string, chan<- Notification) error
+	AckNotification(string) error
+	WatchNotification(string) (chan struct{}, error)
 }
 
 // LeaseInterface defines functions for managing volume leases

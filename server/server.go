@@ -28,9 +28,6 @@ type Server struct {
 
 	r ResourceManager
 
-	notifChMap    map[string]chan Notification
-	notifAckChMap map[string]chan struct{}
-
 	iterateWatch chan struct{}
 
 	log *log.Logger
@@ -39,12 +36,10 @@ type Server struct {
 // NewServer creates a new Server with a given Backend
 func NewServer(b Backend, r ResourceManager) *Server {
 	return &Server{
-		b:             b,
-		r:             r,
-		notifChMap:    make(map[string]chan Notification),
-		notifAckChMap: make(map[string]chan struct{}),
-		iterateWatch:  make(chan struct{}),
-		log:           log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
+		b:            b,
+		r:            r,
+		iterateWatch: make(chan struct{}),
+		log:          log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
 	}
 }
 
@@ -77,8 +72,6 @@ func (s *Server) pruneClients() {
 		if d > time.Second*tombstoneTTL {
 			s.log.Printf("Removing %s with diff %v", client.ID, d)
 			s.b.RemoveClient(client.ID)
-			close(s.notifChMap[client.ID])
-			delete(s.notifChMap, client.ID)
 		}
 	}
 
@@ -220,9 +213,6 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.E
 		return nil, err
 	}
 
-	ch := make(chan Notification)
-	s.notifChMap[req.Id] = ch
-
 	go func() {
 		s.writeNotification(req.Id, NewNotification(
 			UnknownNotificationType,
@@ -280,13 +270,17 @@ func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.H
 func (s *Server) WatchNotifications(msg *svc.NotificationWatchMessage,
 	stream svc.Volchestrator_WatchNotificationsServer) error {
 
-	ch := s.notifChMap[msg.Id]
+	ch := make(chan Notification)
+	go s.b.WatchNotifications(msg.Id, ch)
 
-	if ch == nil {
-		return fmt.Errorf("Unknown ID %q", msg.Id)
-	}
+	for {
+		notification := <-ch
 
-	for notification := range ch {
+		if err := stream.Context().Err(); err != nil {
+			s.log.Println(err)
+			break
+		}
+
 		n := &svc.Notification{
 			Id:      notification.ID,
 			Type:    svc.NotificationType(notification.Type),
@@ -298,23 +292,17 @@ func (s *Server) WatchNotifications(msg *svc.NotificationWatchMessage,
 		}
 	}
 
-	s.log.Printf("Notification channel for %q closed\n", msg.Id)
-
 	return nil
 }
 
 // Acknowledge handles an acknowledgement from the client of a Notification
 func (s *Server) Acknowledge(ctx context.Context, msg *svc.Acknowledgement) (*svc.Empty, error) {
-	ch, exists := s.notifAckChMap[msg.Id]
-	if !exists {
-		err := fmt.Errorf("Failed to acknowledge %q, channel does not exist", msg.Id)
-		return nil, err
-	}
-
 	s.log.Println("Received ack", msg.Id)
 
-	close(ch)
-	delete(s.notifAckChMap, msg.Id)
+	err := s.b.AckNotification(msg.Id)
+	if err != nil {
+		return nil, err
+	}
 
 	return &svc.Empty{}, nil
 }
@@ -421,6 +409,8 @@ func (s *Server) UpdateVolume(ctx context.Context, volume *svc.Volume) (*svc.Vol
 		return nil, err
 	}
 
+	go s.iterateLeaseRequests()
+
 	return volume, nil
 }
 
@@ -485,14 +475,11 @@ func (s *Server) ListLeases(ctx context.Context, e *svc.Empty) (*svc.LeaseList, 
 }
 
 func (s *Server) writeNotification(id string, n Notification) Notification {
-	ch, exists := s.notifChMap[id]
-	if !exists {
-		s.log.Printf("No notification channel found for %q\n", id)
+	err := s.b.WriteNotification(id, n)
+	if err != nil {
+		s.log.Println(err)
 		return n
 	}
-
-	s.notifAckChMap[n.ID] = make(chan struct{})
-	ch <- n
 
 	return n
 }
@@ -598,19 +585,17 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest, reqMap
 		reqMap.mark(request.LeaseRequestID)
 
 		// notify the client the lease is available
-		_, exists := s.notifChMap[request.ClientID]
-		if !exists {
-			s.log.Printf("No notification channel found for %q\n", request.ClientID)
-			continue
-		}
-
 		n := s.writeNotification(request.ClientID, NewNotification(
 			LeaseAvailableNotificationType,
 			request.LeaseRequestID,
 		))
 
 		t := time.After(lease.LeaseAvailableAckTTL)
-		ackCh := s.notifAckChMap[n.ID]
+		ackCh, err := s.b.WatchNotification(n.ID)
+		if err != nil {
+			s.log.Println(err)
+			continue
+		}
 
 		select {
 		case <-t:
