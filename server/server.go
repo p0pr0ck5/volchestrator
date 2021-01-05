@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -104,7 +105,6 @@ func (s *Server) pruneLeaseRequests() {
 	now := time.Now()
 
 	for _, request := range requests {
-		s.log.Printf("Check %+v\n", request)
 		if request.Expires.Before(now) {
 			s.log.Println("Expiring", request.LeaseRequestID)
 
@@ -128,8 +128,6 @@ func (s *Server) pruneLeases() {
 	now := time.Now()
 
 	for _, l := range leases {
-		s.log.Printf("Check %+v\n", l)
-
 		if l.Expires.Before(now) {
 			s.log.Println("Lease", l.LeaseID, "expired")
 
@@ -528,6 +526,25 @@ func (s *Server) iterateLeaseRequests() {
 	s.iterateWatch <- struct{}{}
 }
 
+type lrm struct {
+	m map[string]bool
+	l sync.Mutex
+}
+
+func (l *lrm) seen(id string) bool {
+	l.l.Lock()
+	defer l.l.Unlock()
+
+	return l.m[id]
+}
+
+func (l *lrm) mark(id string) {
+	l.l.Lock()
+	defer l.l.Unlock()
+
+	l.m[id] = true
+}
+
 func (s *Server) watchLeaseRequestIterations() {
 	for {
 		select {
@@ -540,32 +557,31 @@ func (s *Server) watchLeaseRequestIterations() {
 				return
 			}
 
+			requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterAll)
+			if err != nil {
+				s.log.Println(err)
+				return
+			}
+
+			reqMap := &lrm{
+				m: make(map[string]bool),
+			}
+
 			for _, volume := range volumes {
 				s.log.Println("Try to lease", volume.ID)
-				requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterAll)
-				if err != nil {
-					s.log.Println(err)
-					continue
-				}
 
 				// get all requests relevant to this volume
 				// (e.g., search by tag and az)
 				filteredRequests := filterLeaseRequests(volume, requests)
 
-				// TODO sort by some sort of (configurable) fn
-				// filter out blacklisted clients
-				// sieve duplicate clients in the slice
-
-				// there will be a race around trying to use the same LeaseRequest
-				// for multiple matching volumes
-				go s.tryLease(volume, filteredRequests)
+				go s.tryLease(volume, filteredRequests, reqMap)
 			}
 		}
 	}
 }
 
 // given a list of LeaseRequest, try to find a lease
-func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
+func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest, reqMap *lrm) {
 	// set the volume status to pending
 	volume.Status = LeasePendingVolumeStatus
 	err := s.b.UpdateVolume(volume)
@@ -574,6 +590,13 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest) {
 	}
 
 	for _, request := range requests {
+		if reqMap.seen(request.LeaseRequestID) {
+			s.log.Println("already seen", request.LeaseRequestID)
+			continue
+		}
+
+		reqMap.mark(request.LeaseRequestID)
+
 		// notify the client the lease is available
 		_, exists := s.notifChMap[request.ClientID]
 		if !exists {

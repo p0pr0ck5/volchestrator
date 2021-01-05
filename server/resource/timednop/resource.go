@@ -23,13 +23,13 @@ func New() *Manager {
 // Associate implements resource.Manager
 func (m *Manager) Associate(v *server.Volume) error {
 	m.log.Printf("Associating %+v\n", v)
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 10)
 	return nil
 }
 
 // Disassociate implements resource.Manager
 func (m *Manager) Disassociate(v *server.Volume) error {
 	m.log.Printf("Disassociating %+v\n", v)
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 10)
 	return nil
 }
