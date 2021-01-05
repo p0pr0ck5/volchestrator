@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/p0pr0ck5/volchestrator/server"
+	"github.com/p0pr0ck5/volchestrator/lease"
 )
 
 // Manager implements resource.Manager
@@ -20,13 +20,13 @@ func New() *Manager {
 }
 
 // Associate implements resource.Manager
-func (m *Manager) Associate(v *server.Volume) error {
-	m.log.Printf("Associating %+v\n", v)
+func (m *Manager) Associate(lease *lease.Lease) error {
+	m.log.Printf("Associating %+v\n", lease)
 	return nil
 }
 
 // Disassociate implements resource.Manager
-func (m *Manager) Disassociate(v *server.Volume) error {
-	m.log.Printf("Disassociating %+v\n", v)
+func (m *Manager) Disassociate(lease *lease.Lease) error {
+	m.log.Printf("Disassociating %+v\n", lease)
 	return nil
 }

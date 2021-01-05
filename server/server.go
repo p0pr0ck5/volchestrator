@@ -146,7 +146,7 @@ func (s *Server) assignLease(l *lease.Lease) error {
 		return err
 	}
 
-	err = s.r.Associate(volume)
+	err = s.r.Associate(l)
 	if err != nil {
 		return err
 	}
@@ -178,7 +178,7 @@ func (s *Server) releaseLease(l *lease.Lease) error {
 		return err
 	}
 
-	err = s.r.Disassociate(v)
+	err = s.r.Disassociate(l)
 	if err != nil {
 		return err
 	}
@@ -611,17 +611,12 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest, reqMap
 				Expires:  time.Now().Add(lease.DefaultLeaseTTL),
 				Status:   lease.LeaseStatusAssigning,
 			}
+
 			err = s.b.AddLease(l)
 			if err != nil {
 				s.log.Println(err)
 				continue
 				// TODO we're in a bad state here
-			}
-
-			err = s.assignLease(l)
-			if err != nil {
-				s.log.Println(err)
-				continue
 			}
 
 			err = s.b.DeleteLeaseRequest(request.LeaseRequestID)
@@ -630,7 +625,13 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest, reqMap
 				continue
 			}
 
-			m, _ := json.Marshal(volume)
+			err = s.assignLease(l)
+			if err != nil {
+				s.log.Println(err)
+				continue
+			}
+
+			m, _ := json.Marshal(l)
 
 			s.writeNotification(request.ClientID, NewNotification(
 				LeaseNotificationType,
