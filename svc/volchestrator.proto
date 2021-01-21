@@ -18,6 +18,10 @@ message RegisterMessage {
   string id = 1;
 }
 
+message DeregisterMessage {
+  string id = 1;
+}
+
 message HeartbeatMessage {
   string id = 1;
 }
@@ -48,6 +52,7 @@ message Acknowledgement {
 
 service Volchestrator {
   rpc Register(RegisterMessage) returns (Empty) {}
+  rpc Deregister(DeregisterMessage) returns (Empty) {}
   rpc Heartbeat(HeartbeatMessage) returns (HeartbeatResponse) {}
 
   rpc WatchNotifications(NotificationWatchMessage) returns (stream Notification) {}

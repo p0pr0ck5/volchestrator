@@ -223,6 +223,43 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterMessage) (*svc.E
 	return &svc.Empty{}, nil
 }
 
+// Deregister removes a clients and all its elements
+func (s *Server) Deregister(ctx context.Context, req *svc.DeregisterMessage) (*svc.Empty, error) {
+	clientID := req.Id
+
+	// remove the leaserequests first, then all leases, then the client itself
+	requests, err := s.b.ListLeaseRequests(lease.LeaseRequestFilterByClient(clientID))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, request := range requests {
+		err := s.b.DeleteLeaseRequest(request.LeaseRequestID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	leases, err := s.b.ListLeases(lease.LeaseFilterByClient(clientID))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, l := range leases {
+		err := s.releaseLease(l)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = s.b.RemoveClient(clientID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &svc.Empty{}, nil
+}
+
 // Heartbeat handles client HeartbeatMessages
 func (s *Server) Heartbeat(ctx context.Context, m *svc.HeartbeatMessage) (*svc.HeartbeatResponse, error) {
 	//s.log.Println("Seen", m.Id)
