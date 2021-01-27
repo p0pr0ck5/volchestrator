@@ -21,18 +21,26 @@ import (
 	"net"
 	"os"
 
+	"github.com/hashicorp/hcl/v2/hclsimple"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 
+	"github.com/p0pr0ck5/volchestrator/config"
 	"github.com/p0pr0ck5/volchestrator/server"
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
 	"github.com/p0pr0ck5/volchestrator/server/resource/timednop"
 	svc "github.com/p0pr0ck5/volchestrator/svc"
 )
 
-var address string
+var configPath string
 
 func run(cmd *cobra.Command, args []string) {
+	var config config.ServerConfig
+	err := hclsimple.DecodeFile(configPath, nil, &config)
+	if err != nil {
+		log.Fatalf("failed to decode config: %s", err)
+	}
+
 	b := memory.New()
 	r := timednop.New()
 	s := server.NewServer(b, r)
@@ -40,6 +48,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	log := log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
 
+	address := config.Listen.Address
 	listen, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -64,5 +73,5 @@ var serverCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(serverCmd)
 
-	serverCmd.Flags().StringVarP(&address, "address", "a", "127.0.0.1:50051", "Listen address for the volchestrator server")
+	serverCmd.Flags().StringVarP(&configPath, "config-path", "c", "config/examples/server.hcl", "Path for the config file")
 }
