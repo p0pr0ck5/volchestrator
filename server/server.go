@@ -520,7 +520,7 @@ func (s *Server) writeNotification(id string, n Notification) Notification {
 	err := s.b.WriteNotification(id, n)
 	if err != nil {
 		s.log.Println(err)
-		return n
+		return Notification{}
 	}
 
 	return n
@@ -631,6 +631,11 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest, reqMap
 			LeaseAvailableNotificationType,
 			request.LeaseRequestID,
 		))
+
+		if n.ID == "" {
+			// failure to write the notification, move on
+			continue
+		}
 
 		t := time.After(lease.LeaseAvailableAckTTL)
 		ackCh, err := s.b.WatchNotification(n.ID)
