@@ -560,18 +560,17 @@ type lrm struct {
 	l sync.Mutex
 }
 
-func (l *lrm) seen(id string) bool {
+func (l *lrm) mark(id string) bool {
 	l.l.Lock()
 	defer l.l.Unlock()
 
-	return l.m[id]
-}
-
-func (l *lrm) mark(id string) {
-	l.l.Lock()
-	defer l.l.Unlock()
+	if l.m[id] == true {
+		return false
+	}
 
 	l.m[id] = true
+
+	return true
 }
 
 func (s *Server) watchLeaseRequestIterations() {
@@ -619,12 +618,10 @@ func (s *Server) tryLease(volume *Volume, requests []*lease.LeaseRequest, reqMap
 	}
 
 	for _, request := range requests {
-		if reqMap.seen(request.LeaseRequestID) {
+		if !reqMap.mark(request.LeaseRequestID) {
 			s.log.Println("already seen", request.LeaseRequestID)
 			continue
 		}
-
-		reqMap.mark(request.LeaseRequestID)
 
 		// notify the client the lease is available
 		n := s.writeNotification(request.ClientID, NewNotification(
