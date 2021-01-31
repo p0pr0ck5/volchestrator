@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/thanhpk/randstr"
@@ -19,21 +20,21 @@ var notifHandlers map[svc.NotificationType][]notificationHandler
 func registerNotificationHandlers() {
 	notifHandlers[svc.NotificationType_NOTIFICATIONLEASEREQUESTEXPIRED] = []notificationHandler{
 		func(client *Client, msg *svc.Notification) error {
-			log.Println("Handling renewal of", msg.Message, "TODO")
+			client.log.Println("Handling renewal of", msg.Message, "TODO")
 			return nil
 		},
 	}
 
 	notifHandlers[svc.NotificationType_NOTIFICATIONLEASEAVAILABLE] = []notificationHandler{
 		func(client *Client, msg *svc.Notification) error {
-			log.Println("I shouldn't need to do anything here right?") // because we ack the notification
+			client.log.Println("I shouldn't need to do anything here right?") // because we ack the notification
 			return nil
 		},
 	}
 
 	notifHandlers[svc.NotificationType_NOTIFICATIONLEASE] = []notificationHandler{
 		func(client *Client, msg *svc.Notification) error {
-			log.Printf("I haz lease! %+v\n", msg)
+			client.log.Printf("I haz lease! %+v\n", msg)
 			// DO THE THING
 			return nil
 		},
@@ -48,12 +49,15 @@ type Client struct {
 
 	svcClient svc.VolchestratorClient
 	conn      *grpc.ClientConn
+
+	log *log.Logger
 }
 
 // NewClient create a new client object based on a given configuration
 func NewClient(c config.ClientConfig) (*Client, error) {
 	client := &Client{
 		Config: c,
+		log:    log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile),
 	}
 
 	if c.ClientID == "" {
@@ -70,7 +74,7 @@ func (c *Client) Run() error {
 
 	conn, err := grpc.Dial(c.Config.ServerAddress, []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}...)
 	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
+		c.log.Fatalf("fail to dial: %v", err)
 	}
 
 	c.conn = conn
@@ -109,7 +113,7 @@ func (c *Client) SendHeartbeats() {
 		case <-t.C:
 			_, err := c.svcClient.Heartbeat(context.Background(), &svc.HeartbeatMessage{Id: c.ClientID})
 			if err != nil {
-				log.Println(err)
+				c.log.Println(err)
 			}
 		}
 	}
@@ -117,27 +121,27 @@ func (c *Client) SendHeartbeats() {
 
 // WatchNotifications handles notifications and runs callback functions
 func (c *Client) WatchNotifications() {
-	log.Println("Watching for notifications for client", c.ClientID)
+	c.log.Println("Watching for notifications for client", c.ClientID)
 
 	stream, err := c.svcClient.WatchNotifications(context.Background(), &svc.NotificationWatchMessage{
 		Id: c.ClientID,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		c.log.Fatalln(err)
 	}
 
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
-			log.Fatalln(err)
+			c.log.Fatalln(err)
 		}
 
-		log.Printf("Received notification: '%+v'\n", msg)
+		c.log.Printf("Received notification: '%+v'\n", msg)
 
 		for _, f := range notifHandlers[msg.Type] {
 			err = f(c, msg)
 			if err != nil {
-				log.Println("Error executing callback:", err)
+				c.log.Println("Error executing callback:", err)
 				continue
 			}
 		}
@@ -146,9 +150,9 @@ func (c *Client) WatchNotifications() {
 			Id: msg.Id,
 		})
 		if err != nil {
-			log.Fatalln(err)
+			c.log.Fatalln(err)
 		}
-		log.Println("Acknowledged", msg.Id)
+		c.log.Println("Acknowledged", msg.Id)
 	}
 }
 
