@@ -1,6 +1,7 @@
 package wrapper
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -26,8 +27,15 @@ type Wrapper struct {
 
 // NewWrapper creates a Wrapper based on a given config
 func NewWrapper(c config.ServerConfig) (*Wrapper, error) {
-	// TODO by config
-	b := memory.New()
+	var b server.Backend
+
+	switch c.Backend.Type {
+	case "memory":
+		b = memory.New()
+	default:
+		return nil, fmt.Errorf("invalid memory type %s", c.Backend.Type)
+	}
+
 	r := timednop.New()
 	s := server.NewServer(b, r)
 	s.Init()
