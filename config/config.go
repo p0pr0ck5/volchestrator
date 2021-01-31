@@ -18,6 +18,13 @@ type BackendConfig struct {
 
 // ClientConfig is the overarching configuration for 'volchestrator client'
 type ClientConfig struct {
-	ServerAddress string `hcl:"server_address,optional"`
-	ClientID      string `hcl:"client_id,optional"`
+	ServerAddress string         `hcl:"server_address,optional"`
+	ClientID      string         `hcl:"client_id,optional"`
+	LeaseRequests []LeaseRequest `hcl:"lease_request,block"`
+}
+
+// LeaseRequest defines a configuration for a client's desire to lease a volume
+type LeaseRequest struct {
+	Tag              string `hcl:"tag"`
+	AvailabilityZone string `hcl:"az"`
 }

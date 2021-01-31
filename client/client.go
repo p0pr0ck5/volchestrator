@@ -19,12 +19,7 @@ var notifHandlers map[svc.NotificationType][]notificationHandler
 func registerNotificationHandlers() {
 	notifHandlers[svc.NotificationType_NOTIFICATIONLEASEREQUESTEXPIRED] = []notificationHandler{
 		func(client *Client, msg *svc.Notification) error {
-			log.Println("Handling renewal of", msg.Message)
-			client.svcClient.SubmitLeaseRequest(context.Background(), &svc.LeaseRequest{
-				ClientId:         client.ClientID,
-				Tag:              "foo",
-				AvailabilityZone: "us-west-2a",
-			})
+			log.Println("Handling renewal of", msg.Message, "TODO")
 			return nil
 		},
 	}
@@ -91,11 +86,13 @@ func (c *Client) Run() error {
 	go c.WatchNotifications()
 
 	go func() {
-		c.svcClient.SubmitLeaseRequest(context.Background(), &svc.LeaseRequest{
-			ClientId:         c.ClientID,
-			Tag:              "foo",
-			AvailabilityZone: "us-west-2a",
-		})
+		for _, request := range c.Config.LeaseRequests {
+			c.svcClient.SubmitLeaseRequest(context.Background(), &svc.LeaseRequest{
+				ClientId:         c.ClientID,
+				Tag:              request.Tag,
+				AvailabilityZone: request.AvailabilityZone,
+			})
+		}
 	}()
 
 	go c.SendHeartbeats()
