@@ -18,18 +18,16 @@ limitations under the License.
 
 import (
 	"log"
-	"net"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/hashicorp/hcl/v2/hclsimple"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
 
 	"github.com/p0pr0ck5/volchestrator/config"
-	"github.com/p0pr0ck5/volchestrator/server"
-	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
-	"github.com/p0pr0ck5/volchestrator/server/resource/timednop"
-	svc "github.com/p0pr0ck5/volchestrator/svc"
+	"github.com/p0pr0ck5/volchestrator/server/wrapper"
 )
 
 var configPath string
@@ -41,25 +39,32 @@ func run(cmd *cobra.Command, args []string) {
 		log.Fatalf("failed to decode config: %s", err)
 	}
 
-	b := memory.New()
-	r := timednop.New()
-	s := server.NewServer(b, r)
-	s.Init()
-
-	log := log.New(os.Stdout, "", log.Ldate|log.Ltime|log.Lmicroseconds|log.Lshortfile)
-
-	address := config.Listen.Address
-	listen, err := net.Listen("tcp", address)
+	w, err := wrapper.NewWrapper(config)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Fatalf("failed to create new wrapper: %s", err)
 	}
 
-	log.Println("Starting gRPC server at", address)
+	w.Start()
 
-	grpcServer := grpc.NewServer([]grpc.ServerOption{}...)
-	svc.RegisterVolchestratorServer(grpcServer, s)
-	svc.RegisterVolchestratorAdminServer(grpcServer, s)
-	grpcServer.Serve(listen)
+	sigs := make(chan os.Signal, 1)
+	done := make(chan struct{})
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigs
+
+	go func() {
+		w.Stop()
+		close(done)
+	}()
+
+	t := time.After(time.Second)
+
+	select {
+	case <-done:
+	case <-t:
+		log.Println("timeout")
+	}
 }
 
 // serverCmd represents the server command
