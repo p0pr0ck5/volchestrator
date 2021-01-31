@@ -17,132 +17,52 @@ limitations under the License.
 */
 
 import (
-	"context"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/hashicorp/hcl/v2/hclsimple"
+	"github.com/p0pr0ck5/volchestrator/client"
+	"github.com/p0pr0ck5/volchestrator/config"
 	"github.com/spf13/cobra"
-	"github.com/thanhpk/randstr"
-	"google.golang.org/grpc"
-
-	svc "github.com/p0pr0ck5/volchestrator/svc"
 )
 
-var serverAddress string
-var clientID string
-
-type notificationHandler func(svc.VolchestratorClient, *svc.Notification) error
-
-var notifHandlers map[svc.NotificationType][]notificationHandler
-
-func watch(client svc.VolchestratorClient) {
-	log.Println("Watching for notifications for client", clientID)
-
-	stream, err := client.WatchNotifications(context.Background(), &svc.NotificationWatchMessage{
-		Id: clientID,
-	})
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	for {
-		msg, err := stream.Recv()
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		log.Printf("Received notification: '%+v'\n", msg)
-
-		for _, f := range notifHandlers[msg.Type] {
-			err = f(client, msg)
-			if err != nil {
-				log.Println("Error executing callback:", err)
-				continue
-			}
-		}
-
-		_, err = client.Acknowledge(context.Background(), &svc.Acknowledgement{
-			Id: msg.Id,
-		})
-		if err != nil {
-			log.Fatalln(err)
-		}
-		log.Println("Acknowledged", msg.Id)
-	}
-}
-
-func registerNotificationHandlers() {
-	notifHandlers[svc.NotificationType_NOTIFICATIONLEASEREQUESTEXPIRED] = []notificationHandler{
-		func(client svc.VolchestratorClient, msg *svc.Notification) error {
-			log.Println("Handling renewal of", msg.Message)
-			client.SubmitLeaseRequest(context.Background(), &svc.LeaseRequest{
-				ClientId:         clientID,
-				Tag:              "foo",
-				AvailabilityZone: "us-west-2a",
-			})
-			return nil
-		},
-	}
-
-	notifHandlers[svc.NotificationType_NOTIFICATIONLEASEAVAILABLE] = []notificationHandler{
-		func(client svc.VolchestratorClient, msg *svc.Notification) error {
-			log.Println("I shouldn't need to do anything here right?") // because we ack the notification
-			return nil
-		},
-	}
-
-	notifHandlers[svc.NotificationType_NOTIFICATIONLEASE] = []notificationHandler{
-		func(client svc.VolchestratorClient, msg *svc.Notification) error {
-			log.Printf("I haz lease! %+v\n", msg)
-			// DO THE THING
-			return nil
-		},
-	}
-}
+var clientConfigPath string
 
 func clientRun(cmd *cobra.Command, args []string) {
-	notifHandlers = make(map[svc.NotificationType][]notificationHandler)
-	registerNotificationHandlers()
-
-	if clientID == "" {
-		clientID = randstr.Hex(16)
-	}
-
-	conn, err := grpc.Dial(serverAddress, []grpc.DialOption{grpc.WithBlock(), grpc.WithInsecure()}...)
+	var config config.ClientConfig
+	err := hclsimple.DecodeFile(clientConfigPath, nil, &config)
 	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
+		log.Fatalf("failed to decode config: %s", err)
 	}
-	defer conn.Close()
 
-	client := svc.NewVolchestratorClient(conn)
-
-	_, err = client.Register(context.Background(), &svc.RegisterMessage{
-		Id: clientID,
-	})
+	c, err := client.NewClient(config)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to create a new client: %s", err)
 	}
 
-	go watch(client)
+	c.Run()
+
+	sigs := make(chan os.Signal, 1)
+	done := make(chan struct{})
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigs
 
 	go func() {
-		client.SubmitLeaseRequest(context.Background(), &svc.LeaseRequest{
-			ClientId:         clientID,
-			Tag:              "foo",
-			AvailabilityZone: "us-west-2a",
-		})
+		c.Stop()
+		close(done)
 	}()
 
-	t := time.NewTicker(time.Millisecond * 500)
+	t := time.After(time.Second)
 
-	for {
-		select {
-		case <-t.C:
-			_, err := client.Heartbeat(context.Background(), &svc.HeartbeatMessage{Id: clientID})
-			if err != nil {
-				log.Println(err)
-			}
-		}
+	select {
+	case <-done:
+	case <-t:
+		log.Println("timeout")
 	}
 }
 
@@ -157,6 +77,5 @@ var clientCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(clientCmd)
 
-	clientCmd.Flags().StringVarP(&serverAddress, "address", "a", "127.0.0.1:50051", "Address for the volchestrator server")
-	clientCmd.Flags().StringVarP(&clientID, "client-id", "c", "", "A unique client ID")
+	clientCmd.Flags().StringVarP(&clientConfigPath, "config-path", "c", "config/examples/client.hcl", "Path for the config file")
 }

@@ -15,3 +15,9 @@ type ListenConfig struct {
 type BackendConfig struct {
 	Type string `hcl:"type,label"`
 }
+
+// ClientConfig is the overarching configuration for 'volchestrator client'
+type ClientConfig struct {
+	ServerAddress string `hcl:"server_address,optional"`
+	ClientID      string `hcl:"client_id,optional"`
+}

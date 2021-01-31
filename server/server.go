@@ -311,7 +311,12 @@ func (s *Server) WatchNotifications(msg *svc.NotificationWatchMessage,
 	go s.b.WatchNotifications(msg.Id, ch)
 
 	for {
-		notification := <-ch
+		var notification Notification
+		select {
+		case <-stream.Context().Done():
+			return nil
+		case notification = <-ch:
+		}
 
 		if err := stream.Context().Err(); err != nil {
 			s.log.Println(err)
