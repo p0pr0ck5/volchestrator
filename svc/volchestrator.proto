@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option go_package = "github.com/p0pr0ck5/volchestrator/svc";
+
+package volchestrator;
+
+message RegisterRequest {
+  string client_id = 1;
+}
+
+message RegisterResponse {}
+
+message PingRequest {
+  string client_id = 1;
+}
+
+message PingResponse {}
+
+service Volchestrator {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc Ping(PingRequest) returns (PingResponse) {}
+}

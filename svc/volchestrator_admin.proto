@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/p0pr0ck5/volchestrator/svc";
+
+package volchestrator;
+
+message Client {
+  string client_id = 1;
+  google.protobuf.Timestamp registered = 2;
+  google.protobuf.Timestamp last_seen = 3;
+}
+
+message GetClientRequest {
+  string client_id = 1;
+}
+
+message GetClientResponse {
+  Client client = 1;
+}
+
+message ListClientsRequest {}
+
+message ListClientsResponse {
+  repeated Client clients = 1;
+}
+
+message Volume {
+  string volume_id = 1;
+  string region = 2;
+  string tag = 3;
+  enum Status {
+    Available = 0;
+    Unavailable = 1;
+    Attaching = 2;
+    Attached = 3;
+    Detaching = 4;
+  }
+  Status status = 4;
+}
+
+message GetVolumeRequest {
+  string volume_id = 1;
+}
+
+message GetVolumeResponse {
+  Volume volume = 1;
+}
+
+service VolchestratorAdmin {
+  rpc GetClient(GetClientRequest) returns (GetClientResponse) {}
+  rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {}
+
+  rpc GetVolume(GetVolumeRequest) returns (GetVolumeResponse) {}
+}
