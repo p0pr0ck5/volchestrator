@@ -5,11 +5,14 @@ proto:
 		svc/volchestrator.proto \
 		svc/volchestrator_admin.proto
 
+.PHONY: build
 build:
 	go build
 
+.PHONY: test
 test:
 	go test -race -v ./...
 
+.PHONY: dev
 dev: build
 	./volchestrator server

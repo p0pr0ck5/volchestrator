@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
 
@@ -57,4 +58,22 @@ func (s *Server) GetVolume(ctx context.Context, req *svc.GetVolumeRequest) (*svc
 	}
 
 	return res, nil
+}
+
+func (s *Server) AddVolume(ctx context.Context, req *svc.AddVolumeRequest) (*svc.AddVolumeResponse, error) {
+	v := toStruct(req.Volume).(*volume.Volume)
+
+	if err := volume.Validate(v); err != nil {
+		return nil, errors.Wrap(err, "add volume")
+	}
+
+	if v.Status != volume.Available && v.Status != volume.Unavailable {
+		return nil, errors.New("invalid status")
+	}
+
+	if err := s.b.CreateVolume(v); err != nil {
+		return nil, errors.Wrap(err, "create failed")
+	}
+
+	return &svc.AddVolumeResponse{}, nil
 }

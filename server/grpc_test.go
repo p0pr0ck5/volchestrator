@@ -766,3 +766,208 @@ func Test_GetVolume(t *testing.T) {
 		})
 	}
 }
+
+func Test_AddVolume(t *testing.T) {
+	mockVolumes := []*volume.Volume{
+		{
+			ID:     "foo",
+			Region: "us-west-2",
+			Tag:    "bar",
+			Status: volume.Available,
+		},
+		{
+			ID:     "bar",
+			Region: "us-west-1",
+			Tag:    "baz",
+			Status: volume.Unavailable,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.AddVolumeRequest
+	}
+	tests := []struct {
+		name    string
+		args    []args
+		want    []*svc.AddVolumeResponse
+		wantErr []bool
+	}{
+		{
+			"valid volume",
+			[]args{
+				{
+					context.Background(),
+					&svc.AddVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "baz",
+							Region:   "us-west-2",
+							Tag:      "foo",
+						},
+					},
+				},
+			},
+			[]*svc.AddVolumeResponse{
+				{},
+			},
+			[]bool{false},
+		},
+		{
+			"valid volume with unavailable status",
+			[]args{
+				{
+					context.Background(),
+					&svc.AddVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "baz",
+							Region:   "us-west-2",
+							Tag:      "foo",
+							Status:   svc.Volume_Unavailable,
+						},
+					},
+				},
+			},
+			[]*svc.AddVolumeResponse{
+				{},
+			},
+			[]bool{false},
+		},
+		{
+			"different valid volume",
+			[]args{
+				{
+					context.Background(),
+					&svc.AddVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "bat",
+							Region:   "us-west-2",
+							Tag:      "foo",
+						},
+					},
+				},
+			},
+			[]*svc.AddVolumeResponse{
+				{},
+			},
+			[]bool{false},
+		},
+		{
+			"conflicting volume",
+			[]args{
+				{
+					context.Background(),
+					&svc.AddVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "foo",
+							Region:   "us-west-2",
+							Tag:      "foo",
+						},
+					},
+				},
+			},
+			[]*svc.AddVolumeResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"empty volume id",
+			[]args{
+				{
+					context.Background(),
+					&svc.AddVolumeRequest{
+						Volume: &svc.Volume{
+							Region: "us-west-2",
+							Tag:    "foo",
+						},
+					},
+				},
+			},
+			[]*svc.AddVolumeResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"empty volume region",
+			[]args{
+				{
+					context.Background(),
+					&svc.AddVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "bat",
+							Tag:      "bar",
+						},
+					},
+				},
+			},
+			[]*svc.AddVolumeResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"empty volume tag",
+			[]args{
+				{
+					context.Background(),
+					&svc.AddVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "bat",
+							Region:   "us-west-2",
+						},
+					},
+				},
+			},
+			[]*svc.AddVolumeResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"invalid volume status",
+			[]args{
+				{
+					context.Background(),
+					&svc.AddVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "bat",
+							Region:   "us-west-2",
+							Tag:      "baz",
+							Status:   svc.Volume_Attached,
+						},
+					},
+				},
+			},
+			[]*svc.AddVolumeResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv.b, _ = memory.NewMemoryBackend(backend.WithVolumes(mockVolumes))
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorAdminClient(conn)
+
+			for i, req := range tt.args {
+				got, err := client.AddVolume(req.ctx, req.req)
+				if (err != nil) != tt.wantErr[i] {
+					t.Errorf("Server.AddVolume() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !proto.Equal(got, tt.want[i]) {
+					t.Errorf("Server.AddVolume() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}

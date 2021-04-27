@@ -20,6 +20,7 @@ type VolchestratorAdminClient interface {
 	GetClient(ctx context.Context, in *GetClientRequest, opts ...grpc.CallOption) (*GetClientResponse, error)
 	ListClients(ctx context.Context, in *ListClientsRequest, opts ...grpc.CallOption) (*ListClientsResponse, error)
 	GetVolume(ctx context.Context, in *GetVolumeRequest, opts ...grpc.CallOption) (*GetVolumeResponse, error)
+	AddVolume(ctx context.Context, in *AddVolumeRequest, opts ...grpc.CallOption) (*AddVolumeResponse, error)
 }
 
 type volchestratorAdminClient struct {
@@ -57,6 +58,15 @@ func (c *volchestratorAdminClient) GetVolume(ctx context.Context, in *GetVolumeR
 	return out, nil
 }
 
+func (c *volchestratorAdminClient) AddVolume(ctx context.Context, in *AddVolumeRequest, opts ...grpc.CallOption) (*AddVolumeResponse, error) {
+	out := new(AddVolumeResponse)
+	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/AddVolume", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VolchestratorAdminServer is the server API for VolchestratorAdmin service.
 // All implementations must embed UnimplementedVolchestratorAdminServer
 // for forward compatibility
@@ -64,6 +74,7 @@ type VolchestratorAdminServer interface {
 	GetClient(context.Context, *GetClientRequest) (*GetClientResponse, error)
 	ListClients(context.Context, *ListClientsRequest) (*ListClientsResponse, error)
 	GetVolume(context.Context, *GetVolumeRequest) (*GetVolumeResponse, error)
+	AddVolume(context.Context, *AddVolumeRequest) (*AddVolumeResponse, error)
 	mustEmbedUnimplementedVolchestratorAdminServer()
 }
 
@@ -79,6 +90,9 @@ func (UnimplementedVolchestratorAdminServer) ListClients(context.Context, *ListC
 }
 func (UnimplementedVolchestratorAdminServer) GetVolume(context.Context, *GetVolumeRequest) (*GetVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVolume not implemented")
+}
+func (UnimplementedVolchestratorAdminServer) AddVolume(context.Context, *AddVolumeRequest) (*AddVolumeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddVolume not implemented")
 }
 func (UnimplementedVolchestratorAdminServer) mustEmbedUnimplementedVolchestratorAdminServer() {}
 
@@ -147,6 +161,24 @@ func _VolchestratorAdmin_GetVolume_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VolchestratorAdmin_AddVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddVolumeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorAdminServer).AddVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.VolchestratorAdmin/AddVolume",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorAdminServer).AddVolume(ctx, req.(*AddVolumeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VolchestratorAdmin_ServiceDesc is the grpc.ServiceDesc for VolchestratorAdmin service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -165,6 +197,10 @@ var VolchestratorAdmin_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVolume",
 			Handler:    _VolchestratorAdmin_GetVolume_Handler,
+		},
+		{
+			MethodName: "AddVolume",
+			Handler:    _VolchestratorAdmin_AddVolume_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

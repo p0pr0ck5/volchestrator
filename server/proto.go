@@ -100,6 +100,7 @@ func toStruct(from interface{}) interface{} {
 			default:
 				switch field.Type.String() {
 				case "*timestamppb.Timestamp":
+					// TODO
 				default:
 					panic("unsupported type " + field.Type.String())
 				}
