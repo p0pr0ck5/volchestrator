@@ -77,3 +77,17 @@ func (s *Server) AddVolume(ctx context.Context, req *svc.AddVolumeRequest) (*svc
 
 	return &svc.AddVolumeResponse{}, nil
 }
+
+func (s *Server) UpdateVolume(ctx context.Context, req *svc.UpdateVolumeRequest) (*svc.UpdateVolumeResponse, error) {
+	v := toStruct(req.Volume).(*volume.Volume)
+
+	if err := volume.Validate(v); err != nil {
+		return nil, errors.Wrap(err, "update volume")
+	}
+
+	if err := s.b.UpdateVolume(v); err != nil {
+		return nil, errors.Wrap(err, "update failed")
+	}
+
+	return &svc.UpdateVolumeResponse{}, nil
+}

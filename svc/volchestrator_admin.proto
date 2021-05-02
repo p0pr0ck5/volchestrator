@@ -54,10 +54,17 @@ message AddVolumeRequest {
 
 message AddVolumeResponse {}
 
+message UpdateVolumeRequest {
+  Volume volume = 1;
+}
+
+message UpdateVolumeResponse {}
+
 service VolchestratorAdmin {
   rpc GetClient(GetClientRequest) returns (GetClientResponse) {}
   rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {}
 
   rpc GetVolume(GetVolumeRequest) returns (GetVolumeResponse) {}
   rpc AddVolume(AddVolumeRequest) returns (AddVolumeResponse) {}
+  rpc UpdateVolume(UpdateVolumeRequest) returns (UpdateVolumeResponse) {}
 }
