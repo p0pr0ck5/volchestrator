@@ -63,8 +63,17 @@ func (s *Server) GetVolume(ctx context.Context, req *svc.GetVolumeRequest) (*svc
 func (s *Server) AddVolume(ctx context.Context, req *svc.AddVolumeRequest) (*svc.AddVolumeResponse, error) {
 	v := toStruct(req.Volume).(*volume.Volume)
 
-	if err := volume.Validate(v); err != nil {
-		return nil, errors.Wrap(err, "add volume")
+	if err := v.Validate(); err != nil {
+		var errMsg string
+
+		_, ok := err.(volume.VolumeError)
+		if ok {
+			errMsg = "volume validation"
+		} else {
+			errMsg = "add volume"
+		}
+
+		return nil, errors.Wrap(err, errMsg)
 	}
 
 	if v.Status != volume.Available && v.Status != volume.Unavailable {
@@ -81,8 +90,35 @@ func (s *Server) AddVolume(ctx context.Context, req *svc.AddVolumeRequest) (*svc
 func (s *Server) UpdateVolume(ctx context.Context, req *svc.UpdateVolumeRequest) (*svc.UpdateVolumeResponse, error) {
 	v := toStruct(req.Volume).(*volume.Volume)
 
-	if err := volume.Validate(v); err != nil {
-		return nil, errors.Wrap(err, "update volume")
+	currentVolume, err := s.b.ReadVolume(v.ID)
+	if err != nil {
+		return nil, errors.Wrap(err, "get current volume")
+	}
+
+	if err := v.Validate(); err != nil {
+		var errMsg string
+
+		_, ok := err.(volume.VolumeError)
+		if ok {
+			errMsg = "volume validation"
+		} else {
+			errMsg = "update volume"
+		}
+
+		return nil, errors.Wrap(err, errMsg)
+	}
+
+	if err := currentVolume.ValidateTransition(v); err != nil {
+		var errMsg string
+
+		_, ok := err.(volume.VolumeError)
+		if ok {
+			errMsg = "volume validation"
+		} else {
+			errMsg = "update volume"
+		}
+
+		return nil, errors.Wrap(err, errMsg)
 	}
 
 	if err := s.b.UpdateVolume(v); err != nil {
