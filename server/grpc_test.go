@@ -970,3 +970,56 @@ func Test_AddVolume(t *testing.T) {
 		})
 	}
 }
+
+func Test_UpdateVolume(t *testing.T) {
+	mockVolumes := []*volume.Volume{
+		{
+			ID:     "foo",
+			Region: "us-west-2",
+			Tag:    "bar",
+			Status: volume.Available,
+		},
+		{
+			ID:     "bar",
+			Region: "us-west-1",
+			Tag:    "baz",
+			Status: volume.Unavailable,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.UpdateVolumeRequest
+	}
+	tests := []struct {
+		name    string
+		args    []args
+		want    []*svc.UpdateVolumeResponse
+		wantErr []bool
+	}{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv.b = backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorAdminClient(conn)
+
+			for i, req := range tt.args {
+				got, err := client.UpdateVolume(req.ctx, req.req)
+				if (err != nil) != tt.wantErr[i] {
+					t.Errorf("Server.UpdateVolume() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !proto.Equal(got, tt.want[i]) {
+					t.Errorf("Server.UpdateVolume() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}

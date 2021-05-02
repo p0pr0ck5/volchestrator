@@ -1,6 +1,8 @@
 package backend
 
 import (
+	"time"
+
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/pkg/errors"
@@ -68,10 +70,15 @@ func (b *Backend) ListClients() ([]*client.Client, error) {
 }
 
 func (b *Backend) CreateClient(c *client.Client) error {
+	now := time.Now()
+	c.CreatedAt = now
+	c.UpdatedAt = now
+
 	return b.b.CreateClient(c)
 }
 
 func (b *Backend) UpdateClient(c *client.Client) error {
+	c.UpdatedAt = time.Now()
 	return b.b.UpdateClient(c)
 }
 
@@ -100,6 +107,10 @@ func (b *Backend) CreateVolume(v *volume.Volume) error {
 
 		return errors.Wrap(err, errMsg)
 	}
+
+	now := time.Now()
+	v.CreatedAt = now
+	v.UpdatedAt = now
 
 	return b.b.CreateVolume(v)
 }
@@ -135,6 +146,8 @@ func (b *Backend) UpdateVolume(v *volume.Volume) error {
 
 		return errors.Wrap(err, errMsg)
 	}
+
+	v.UpdatedAt = time.Now()
 
 	return b.b.UpdateVolume(v)
 }

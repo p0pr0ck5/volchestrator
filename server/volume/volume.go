@@ -1,5 +1,7 @@
 package volume
 
+import "github.com/p0pr0ck5/volchestrator/server/model"
+
 type Status int
 
 type VolumeError struct {
@@ -43,6 +45,8 @@ func contains(needle Status, haystack []Status) bool {
 }
 
 type Volume struct {
+	model.Model
+
 	ID     string
 	Region string
 	Tag    string
