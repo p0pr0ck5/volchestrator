@@ -53,7 +53,7 @@ func TestServer_Register(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewServer(withMockBackend())
+			s, _ := NewServer(WithMockBackend())
 			got, err := s.Register(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Server.Register() error = %v, wantErr %v", err, tt.wantErr)
@@ -111,7 +111,7 @@ func TestServer_Ping(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewServer(withMockBackend())
+			s, _ := NewServer(WithMockBackend())
 			got, err := s.Ping(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Server.Ping() error = %v, wantErr %v", err, tt.wantErr)

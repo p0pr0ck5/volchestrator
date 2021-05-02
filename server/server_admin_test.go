@@ -59,7 +59,7 @@ func TestServer_GetClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewServer(withMockBackend())
+			s, _ := NewServer(WithMockBackend())
 			got, err := s.GetClient(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Server.GetClient() error = %v, wantErr %v", err, tt.wantErr)
@@ -103,7 +103,7 @@ func TestServer_ListClients(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewServer(withMockBackend())
+			s, _ := NewServer(WithMockBackend())
 			got, err := s.ListClients(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Server.ListClients() error = %v, wantErr %v", err, tt.wantErr)
@@ -159,7 +159,7 @@ func TestServer_GetVolume(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewServer(withMockBackend())
+			s, _ := NewServer(WithMockBackend())
 			got, err := s.GetVolume(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Server.GetVolume() error = %v, wantErr %v", err, tt.wantErr)
@@ -289,7 +289,7 @@ func TestServer_AddVolume(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewServer(withMockBackend())
+			s, _ := NewServer(WithMockBackend())
 			got, err := s.AddVolume(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Server.AddVolume() error = %v, wantErr %v", err, tt.wantErr)
@@ -404,7 +404,7 @@ func TestServer_UpdateVolume(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewServer(withMockBackend())
+			s, _ := NewServer(WithMockBackend())
 			got, err := s.UpdateVolume(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Server.UpdateVolume() error = %v, wantErr %v", err, tt.wantErr)

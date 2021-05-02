@@ -1,42 +1,14 @@
 package server
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
+	"github.com/p0pr0ck5/volchestrator/server/client"
 )
 
-func TestWithNewMemoryBackend(t *testing.T) {
-	tests := []struct {
-		name    string
-		want    string
-		wantErr bool
-	}{
-		{
-			"new memory backend",
-			"*memory.Memory",
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s, err := NewServer(WithNewMemoryBackend())
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewServer() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if reflect.TypeOf(s.b).String() != tt.want {
-				t.Errorf("NewServer(WithNewMemoryBackend()).b = %v, want %v", reflect.TypeOf(s.b).String(), tt.want)
-			}
-		})
-	}
-}
-
 func TestWithMemoryBackend(t *testing.T) {
-	m, _ := memory.NewMemoryBackend()
+	m := memory.NewMemoryBackend()
 
 	type args struct {
 		b *memory.Memory
@@ -51,10 +23,10 @@ func TestWithMemoryBackend(t *testing.T) {
 			"two different memory backends",
 			[]args{
 				{
-					b: &memory.Memory{},
+					b: memory.NewMemoryBackend(),
 				},
 				{
-					b: &memory.Memory{},
+					b: memory.NewMemoryBackend(),
 				},
 			},
 			false,
@@ -90,7 +62,11 @@ func TestWithMemoryBackend(t *testing.T) {
 				return
 			}
 
-			if (s1.b == s2.b) != tt.wantEqual {
+			s1.b.CreateClient(&client.Client{ID: "foo"})
+
+			l1, _ := s1.b.ListClients()
+			l2, _ := s2.b.ListClients()
+			if (len(l1) == len(l2)) != tt.wantEqual {
 				t.Errorf("s1.b == s2.b = %v, want %v", s1.b == s2.b, tt.wantEqual)
 			}
 		})

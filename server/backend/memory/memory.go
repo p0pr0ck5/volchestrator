@@ -3,7 +3,6 @@ package memory
 import (
 	"fmt"
 
-	"github.com/p0pr0ck5/volchestrator/server/backend"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
@@ -20,17 +19,13 @@ type Memory struct {
 	volumeMap volumeMap
 }
 
-func NewMemoryBackend(opts ...backend.BackendOpt) (*Memory, error) {
+func NewMemoryBackend() *Memory {
 	m := &Memory{
 		clientMap: make(map[string]*client.Client),
 		volumeMap: make(map[string]*volume.Volume),
 	}
 
-	for _, opt := range opts {
-		opt(m)
-	}
-
-	return m, nil
+	return m
 }
 
 func (m *Memory) getMap(entityType string) dataMap {

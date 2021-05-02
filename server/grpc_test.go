@@ -13,7 +13,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/p0pr0ck5/volchestrator/server/backend"
-	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
@@ -216,7 +215,7 @@ func Test_Register(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv.b, _ = memory.NewMemoryBackend()
+			srv.b = backend.NewMemoryBackend()
 
 			ctx := context.Background()
 			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
@@ -417,7 +416,7 @@ func Test_Ping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv.b, _ = memory.NewMemoryBackend()
+			srv.b = backend.NewMemoryBackend()
 
 			for _, prefunc := range tt.preFunctions {
 				prefunc.f(prefunc.arg)
@@ -546,7 +545,7 @@ func Test_GetClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv.b, _ = memory.NewMemoryBackend(backend.WithClients(mockClients))
+			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
 
 			ctx := context.Background()
 			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
@@ -617,7 +616,7 @@ func Test_ListClients(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv.b, _ = memory.NewMemoryBackend(backend.WithClients(mockClients))
+			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
 
 			ctx := context.Background()
 			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
@@ -743,7 +742,7 @@ func Test_GetVolume(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv.b, _ = memory.NewMemoryBackend(backend.WithVolumes(mockVolumes))
+			srv.b = backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))
 
 			ctx := context.Background()
 			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
@@ -948,7 +947,7 @@ func Test_AddVolume(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			srv.b, _ = memory.NewMemoryBackend(backend.WithVolumes(mockVolumes))
+			srv.b = backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))
 
 			ctx := context.Background()
 			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())

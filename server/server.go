@@ -11,7 +11,7 @@ type Server struct {
 	svc.UnimplementedVolchestratorServer
 	svc.UnimplementedVolchestratorAdminServer
 
-	b backend.Backend
+	b *backend.Backend
 }
 
 func NewServer(opts ...ServerOpt) (*Server, error) {
