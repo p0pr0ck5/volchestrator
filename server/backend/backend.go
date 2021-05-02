@@ -3,6 +3,7 @@ package backend
 import (
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
+	"github.com/pkg/errors"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
@@ -87,10 +88,54 @@ func (b *Backend) ListVolumes() ([]*volume.Volume, error) {
 }
 
 func (b *Backend) CreateVolume(v *volume.Volume) error {
+	if err := v.Validate(); err != nil {
+		var errMsg string
+
+		_, ok := err.(volume.VolumeError)
+		if ok {
+			errMsg = "volume validation"
+		} else {
+			errMsg = "add volume"
+		}
+
+		return errors.Wrap(err, errMsg)
+	}
+
 	return b.b.CreateVolume(v)
 }
 
 func (b *Backend) UpdateVolume(v *volume.Volume) error {
+	currentVolume, err := b.ReadVolume(v.ID)
+	if err != nil {
+		return errors.Wrap(err, "get current volume")
+	}
+
+	if err := v.Validate(); err != nil {
+		var errMsg string
+
+		_, ok := err.(volume.VolumeError)
+		if ok {
+			errMsg = "volume validation"
+		} else {
+			errMsg = "update volume"
+		}
+
+		return errors.Wrap(err, errMsg)
+	}
+
+	if err := currentVolume.ValidateTransition(v); err != nil {
+		var errMsg string
+
+		_, ok := err.(volume.VolumeError)
+		if ok {
+			errMsg = "volume validation"
+		} else {
+			errMsg = "update volume"
+		}
+
+		return errors.Wrap(err, errMsg)
+	}
+
 	return b.b.UpdateVolume(v)
 }
 
