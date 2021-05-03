@@ -49,7 +49,11 @@ func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream s
 		return errors.New("empty client id")
 	}
 
-	ch := s.b.GetNotifications(req.ClientId)
+	ch, err := s.b.GetNotifications(req.ClientId)
+	if err != nil {
+		return errors.Wrap(err, "get notifications")
+	}
+
 	if ch == nil {
 		return errors.New("no notifications channel")
 	}

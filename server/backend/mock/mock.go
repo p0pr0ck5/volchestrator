@@ -117,9 +117,13 @@ func (m *MockBackend) DeleteVolume(v *volume.Volume) error {
 	return nil
 }
 
-func (m *MockBackend) GetNotifications(id string) <-chan *notification.Notification {
+func (m *MockBackend) WriteNotification(n *notification.Notification) error {
+	return nil
+}
+
+func (m *MockBackend) GetNotifications(id string) (<-chan *notification.Notification, error) {
 	if id == "bad" {
-		return nil
+		return nil, nil
 	}
 
 	ch := make(chan *notification.Notification)
@@ -129,5 +133,5 @@ func (m *MockBackend) GetNotifications(id string) <-chan *notification.Notificat
 		close(ch)
 	}()
 
-	return ch
+	return ch, nil
 }

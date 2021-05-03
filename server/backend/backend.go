@@ -21,7 +21,8 @@ type backend interface {
 	UpdateVolume(*volume.Volume) error
 	DeleteVolume(*volume.Volume) error
 
-	GetNotifications(string) <-chan *notification.Notification
+	WriteNotification(*notification.Notification) error
+	GetNotifications(string) (<-chan *notification.Notification, error)
 }
 
 type Backend struct {
