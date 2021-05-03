@@ -19,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 type VolchestratorClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	WatchNotifications(ctx context.Context, in *WatchNotificationsRequest, opts ...grpc.CallOption) (Volchestrator_WatchNotificationsClient, error)
 }
 
 type volchestratorClient struct {
@@ -47,12 +48,45 @@ func (c *volchestratorClient) Ping(ctx context.Context, in *PingRequest, opts ..
 	return out, nil
 }
 
+func (c *volchestratorClient) WatchNotifications(ctx context.Context, in *WatchNotificationsRequest, opts ...grpc.CallOption) (Volchestrator_WatchNotificationsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Volchestrator_ServiceDesc.Streams[0], "/volchestrator.Volchestrator/WatchNotifications", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &volchestratorWatchNotificationsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Volchestrator_WatchNotificationsClient interface {
+	Recv() (*WatchNotificationsResponse, error)
+	grpc.ClientStream
+}
+
+type volchestratorWatchNotificationsClient struct {
+	grpc.ClientStream
+}
+
+func (x *volchestratorWatchNotificationsClient) Recv() (*WatchNotificationsResponse, error) {
+	m := new(WatchNotificationsResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // VolchestratorServer is the server API for Volchestrator service.
 // All implementations must embed UnimplementedVolchestratorServer
 // for forward compatibility
 type VolchestratorServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
+	WatchNotifications(*WatchNotificationsRequest, Volchestrator_WatchNotificationsServer) error
 	mustEmbedUnimplementedVolchestratorServer()
 }
 
@@ -65,6 +99,9 @@ func (UnimplementedVolchestratorServer) Register(context.Context, *RegisterReque
 }
 func (UnimplementedVolchestratorServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedVolchestratorServer) WatchNotifications(*WatchNotificationsRequest, Volchestrator_WatchNotificationsServer) error {
+	return status.Errorf(codes.Unimplemented, "method WatchNotifications not implemented")
 }
 func (UnimplementedVolchestratorServer) mustEmbedUnimplementedVolchestratorServer() {}
 
@@ -115,6 +152,27 @@ func _Volchestrator_Ping_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Volchestrator_WatchNotifications_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchNotificationsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VolchestratorServer).WatchNotifications(m, &volchestratorWatchNotificationsServer{stream})
+}
+
+type Volchestrator_WatchNotificationsServer interface {
+	Send(*WatchNotificationsResponse) error
+	grpc.ServerStream
+}
+
+type volchestratorWatchNotificationsServer struct {
+	grpc.ServerStream
+}
+
+func (x *volchestratorWatchNotificationsServer) Send(m *WatchNotificationsResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // Volchestrator_ServiceDesc is the grpc.ServiceDesc for Volchestrator service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -131,6 +189,12 @@ var Volchestrator_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Volchestrator_Ping_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "WatchNotifications",
+			Handler:       _Volchestrator_WatchNotifications_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "svc/volchestrator.proto",
 }

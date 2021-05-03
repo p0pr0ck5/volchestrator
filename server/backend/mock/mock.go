@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
@@ -92,26 +93,41 @@ func (m *MockBackend) ListVolumes() ([]*volume.Volume, error) {
 	}, nil
 }
 
-func (m *MockBackend) CreateVolume(c *volume.Volume) error {
-	if c.ID == "bad" {
+func (m *MockBackend) CreateVolume(v *volume.Volume) error {
+	if v.ID == "bad" {
 		return errors.New("error")
 	}
 
 	return nil
 }
 
-func (m *MockBackend) UpdateVolume(c *volume.Volume) error {
-	if c.ID == "bad" {
+func (m *MockBackend) UpdateVolume(v *volume.Volume) error {
+	if v.ID == "bad" {
 		return errors.New("error")
 	}
 
 	return nil
 }
 
-func (m *MockBackend) DeleteVolume(c *volume.Volume) error {
-	if c.ID == "bad" {
+func (m *MockBackend) DeleteVolume(v *volume.Volume) error {
+	if v.ID == "bad" {
 		return errors.New("error")
 	}
 
 	return nil
+}
+
+func (m *MockBackend) GetNotifications(id string) <-chan *notification.Notification {
+	if id == "bad" {
+		return nil
+	}
+
+	ch := make(chan *notification.Notification)
+
+	go func() {
+		time.Sleep(time.Millisecond * 10)
+		close(ch)
+	}()
+
+	return ch
 }

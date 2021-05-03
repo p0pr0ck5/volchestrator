@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
@@ -25,6 +26,10 @@ func toProto(from interface{}) interface{} {
 		to = &svc.Volume{}
 		val = reflect.ValueOf(from.(*volume.Volume)).Elem()
 		ctx = "Volume"
+	case *notification.Notification:
+		to = &svc.Notification{}
+		val = reflect.ValueOf(from.(*notification.Notification)).Elem()
+		ctx = "Notification"
 	}
 
 	for i := 0; i < val.NumField(); i++ {

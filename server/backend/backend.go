@@ -1,13 +1,10 @@
 package backend
 
 import (
-	"time"
-
-	"github.com/pkg/errors"
-
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
@@ -23,6 +20,8 @@ type backend interface {
 	CreateVolume(*volume.Volume) error
 	UpdateVolume(*volume.Volume) error
 	DeleteVolume(*volume.Volume) error
+
+	GetNotifications(string) <-chan *notification.Notification
 }
 
 type Backend struct {
@@ -59,108 +58,4 @@ func NewMockBackend() *Backend {
 	}
 
 	return b
-}
-
-func (b *Backend) ReadClient(id string) (*client.Client, error) {
-	return b.b.ReadClient(id)
-}
-
-func (b *Backend) ListClients() ([]*client.Client, error) {
-	return b.b.ListClients()
-}
-
-func (b *Backend) CreateClient(c *client.Client) error {
-	now := time.Now()
-	c.CreatedAt = now
-	c.UpdatedAt = now
-
-	return b.b.CreateClient(c)
-}
-
-func (b *Backend) UpdateClient(c *client.Client) error {
-	c.UpdatedAt = time.Now()
-	return b.b.UpdateClient(c)
-}
-
-func (b *Backend) DeleteClient(c *client.Client) error {
-	return b.b.DeleteClient(c)
-}
-
-func (b *Backend) ReadVolume(id string) (*volume.Volume, error) {
-	return b.b.ReadVolume(id)
-}
-
-func (b *Backend) ListVolumes() ([]*volume.Volume, error) {
-	return b.b.ListVolumes()
-}
-
-func (b *Backend) CreateVolume(v *volume.Volume) error {
-	if err := v.Validate(); err != nil {
-		var errMsg string
-
-		_, ok := err.(volume.VolumeError)
-		if ok {
-			errMsg = "volume validation"
-		} else {
-			errMsg = "add volume"
-		}
-
-		return errors.Wrap(err, errMsg)
-	}
-
-	now := time.Now()
-	v.CreatedAt = now
-	v.UpdatedAt = now
-
-	return b.b.CreateVolume(v)
-}
-
-func (b *Backend) UpdateVolume(v *volume.Volume) error {
-	currentVolume, err := b.ReadVolume(v.ID)
-	if err != nil {
-		return errors.Wrap(err, "get current volume")
-	}
-
-	if err := v.Validate(); err != nil {
-		var errMsg string
-
-		_, ok := err.(volume.VolumeError)
-		if ok {
-			errMsg = "volume validation"
-		} else {
-			errMsg = "update volume"
-		}
-
-		return errors.Wrap(err, errMsg)
-	}
-
-	if err := currentVolume.ValidateTransition(v); err != nil {
-		var errMsg string
-
-		_, ok := err.(volume.VolumeError)
-		if ok {
-			errMsg = "volume validation"
-		} else {
-			errMsg = "update volume"
-		}
-
-		return errors.Wrap(err, errMsg)
-	}
-
-	v.UpdatedAt = time.Now()
-
-	return b.b.UpdateVolume(v)
-}
-
-func (b *Backend) DeleteVolume(v *volume.Volume) error {
-	currentVolume, err := b.ReadVolume(v.ID)
-	if err != nil {
-		return errors.Wrap(err, "get current volume")
-	}
-
-	if currentVolume.Status != volume.Unavailable {
-		return errors.New("cannot delete volume when it is not unavailable")
-	}
-
-	return b.b.DeleteVolume(v)
 }

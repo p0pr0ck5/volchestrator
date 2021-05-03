@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
@@ -17,12 +18,15 @@ type dataMap interface {
 type Memory struct {
 	clientMap clientMap
 	volumeMap volumeMap
+
+	notificationChMap map[string]chan *notification.Notification
 }
 
 func NewMemoryBackend() *Memory {
 	m := &Memory{
-		clientMap: make(map[string]*client.Client),
-		volumeMap: make(map[string]*volume.Volume),
+		clientMap:         make(map[string]*client.Client),
+		volumeMap:         make(map[string]*volume.Volume),
+		notificationChMap: make(map[string]chan *notification.Notification),
 	}
 
 	return m

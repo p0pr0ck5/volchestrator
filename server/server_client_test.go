@@ -123,3 +123,44 @@ func TestServer_Ping(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_WatchNotifications(t *testing.T) {
+	type args struct {
+		req    *svc.WatchNotificationsRequest
+		stream svc.Volchestrator_WatchNotificationsServer
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"stream response",
+			args{
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+				},
+				nil,
+			},
+			false,
+		},
+		{
+			"invalid client",
+			args{
+				&svc.WatchNotificationsRequest{
+					ClientId: "bad",
+				},
+				nil,
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, _ := NewServer(WithMockBackend())
+			if err := s.WatchNotifications(tt.args.req, tt.args.stream); (err != nil) != tt.wantErr {
+				t.Errorf("Server.WatchNotifications() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

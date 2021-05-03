@@ -16,7 +16,21 @@ message PingRequest {
 
 message PingResponse {}
 
+message WatchNotificationsRequest {
+  string client_id = 1;
+}
+
+message Notification {
+  string message = 1;
+}
+
+message WatchNotificationsResponse {
+  Notification notification = 1;
+}
+
 service Volchestrator {
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
   rpc Ping(PingRequest) returns (PingResponse) {}
+
+  rpc WatchNotifications(WatchNotificationsRequest) returns (stream WatchNotificationsResponse) {}
 }

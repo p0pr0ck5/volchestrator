@@ -43,3 +43,22 @@ func (s *Server) Ping(ctx context.Context, req *svc.PingRequest) (*svc.PingRespo
 
 	return &svc.PingResponse{}, nil
 }
+
+func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream svc.Volchestrator_WatchNotificationsServer) error {
+	if req.ClientId == "" {
+		return errors.New("empty client id")
+	}
+
+	ch := s.b.GetNotifications(req.ClientId)
+	if ch == nil {
+		return errors.New("no notifications channel")
+	}
+
+	for notif := range ch {
+		stream.Send(&svc.WatchNotificationsResponse{
+			Notification: toProto(notif).(*svc.Notification),
+		})
+	}
+
+	return nil
+}
