@@ -996,7 +996,88 @@ func Test_UpdateVolume(t *testing.T) {
 		args    []args
 		want    []*svc.UpdateVolumeResponse
 		wantErr []bool
-	}{}
+	}{
+		{
+			"valid update",
+			[]args{
+				{
+					context.Background(),
+					&svc.UpdateVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "foo",
+							Region:   "us-west-2",
+							Tag:      "baz",
+							Status:   svc.Volume_Status(volume.Available),
+						},
+					},
+				},
+			},
+			[]*svc.UpdateVolumeResponse{
+				{},
+			},
+			[]bool{false},
+		},
+		{
+			"another valid update",
+			[]args{
+				{
+					context.Background(),
+					&svc.UpdateVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "bar",
+							Region:   "us-west-2",
+							Tag:      "foo",
+							Status:   svc.Volume_Status(volume.Available),
+						},
+					},
+				},
+			},
+			[]*svc.UpdateVolumeResponse{
+				{},
+			},
+			[]bool{false},
+		},
+		{
+			"nonexistent volume",
+			[]args{
+				{
+					context.Background(),
+					&svc.UpdateVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "bat",
+							Region:   "us-west-2",
+							Tag:      "baz",
+							Status:   svc.Volume_Status(volume.Available),
+						},
+					},
+				},
+			},
+			[]*svc.UpdateVolumeResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"invalid transition",
+			[]args{
+				{
+					context.Background(),
+					&svc.UpdateVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "foo",
+							Region:   "us-west-2",
+							Tag:      "bar",
+							Status:   svc.Volume_Status(volume.Attached),
+						},
+					},
+				},
+			},
+			[]*svc.UpdateVolumeResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1100,6 +1181,32 @@ func Test_DeleteVolume(t *testing.T) {
 				nil,
 			},
 			[]bool{true},
+		},
+		{
+			"delete same volume twice",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeleteVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "foo",
+						},
+					},
+				},
+				{
+					context.Background(),
+					&svc.DeleteVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "foo",
+						},
+					},
+				},
+			},
+			[]*svc.DeleteVolumeResponse{
+				{},
+				nil,
+			},
+			[]bool{false, true},
 		},
 	}
 
