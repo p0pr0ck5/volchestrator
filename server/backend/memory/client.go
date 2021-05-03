@@ -2,6 +2,7 @@ package memory
 
 import (
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/notification"
 )
 
 type clientMap map[string]*client.Client
@@ -44,7 +45,14 @@ func (m *Memory) ListClients() ([]*client.Client, error) {
 }
 
 func (m *Memory) CreateClient(client *client.Client) error {
-	return m.cud("create", client)
+	if err := m.cud("create", client); err != nil {
+		return err
+	}
+
+	ch := make(chan *notification.Notification)
+	m.notificationChMap[client.ID] = ch
+
+	return nil
 }
 
 func (m *Memory) UpdateClient(client *client.Client) error {
@@ -52,5 +60,12 @@ func (m *Memory) UpdateClient(client *client.Client) error {
 }
 
 func (m *Memory) DeleteClient(client *client.Client) error {
-	return m.cud("delete", client)
+	if err := m.cud("delete", client); err != nil {
+		return err
+	}
+
+	close(m.notificationChMap[client.ID])
+	delete(m.notificationChMap, client.ID)
+
+	return nil
 }
