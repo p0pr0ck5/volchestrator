@@ -83,3 +83,13 @@ func (s *Server) UpdateVolume(ctx context.Context, req *svc.UpdateVolumeRequest)
 
 	return &svc.UpdateVolumeResponse{}, nil
 }
+
+func (s *Server) DeleteVolume(ctx context.Context, req *svc.DeleteVolumeRequest) (*svc.DeleteVolumeResponse, error) {
+	v := toStruct(req.Volume).(*volume.Volume)
+
+	if err := s.b.DeleteVolume(v); err != nil {
+		return nil, errors.Wrap(err, "delete failed")
+	}
+
+	return &svc.DeleteVolumeResponse{}, nil
+}

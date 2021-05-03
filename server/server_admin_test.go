@@ -140,7 +140,7 @@ func TestServer_GetVolume(t *testing.T) {
 					VolumeId: "foo",
 					Region:   "us-west-2",
 					Tag:      "foo",
-					Status:   svc.Volume_Status(volume.Available),
+					Status:   svc.Volume_Status(volume.Unavailable),
 				},
 			},
 			false,
@@ -412,6 +412,59 @@ func TestServer_UpdateVolume(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Server.UpdateVolume() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestServer_DeleteVolume(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req *svc.DeleteVolumeRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *svc.DeleteVolumeResponse
+		wantErr bool
+	}{
+		{
+			"valid volume",
+			args{
+				context.Background(),
+				&svc.DeleteVolumeRequest{
+					Volume: &svc.Volume{
+						VolumeId: "foo",
+					},
+				},
+			},
+			&svc.DeleteVolumeResponse{},
+			false,
+		},
+		{
+			"valid volume",
+			args{
+				context.Background(),
+				&svc.DeleteVolumeRequest{
+					Volume: &svc.Volume{
+						VolumeId: "bad",
+					},
+				},
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, _ := NewServer(WithMockBackend())
+			got, err := s.DeleteVolume(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Server.DeleteVolume() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Server.DeleteVolume() = %v, want %v", got, tt.want)
 			}
 		})
 	}

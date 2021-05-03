@@ -76,7 +76,7 @@ func (m *MockBackend) ReadVolume(id string) (*volume.Volume, error) {
 		ID:     id,
 		Region: "us-west-2",
 		Tag:    "foo",
-		Status: volume.Available,
+		Status: volume.Unavailable,
 	}
 
 	return c, nil

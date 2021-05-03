@@ -153,5 +153,14 @@ func (b *Backend) UpdateVolume(v *volume.Volume) error {
 }
 
 func (b *Backend) DeleteVolume(v *volume.Volume) error {
+	currentVolume, err := b.ReadVolume(v.ID)
+	if err != nil {
+		return errors.Wrap(err, "get current volume")
+	}
+
+	if currentVolume.Status != volume.Unavailable {
+		return errors.New("cannot delete volume when it is not unavailable")
+	}
+
 	return b.b.DeleteVolume(v)
 }

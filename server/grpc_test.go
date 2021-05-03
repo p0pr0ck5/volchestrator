@@ -1023,3 +1023,108 @@ func Test_UpdateVolume(t *testing.T) {
 		})
 	}
 }
+
+func Test_DeleteVolume(t *testing.T) {
+	mockVolumes := []*volume.Volume{
+		{
+			ID:     "foo",
+			Region: "us-west-2",
+			Tag:    "bar",
+			Status: volume.Unavailable,
+		},
+		{
+			ID:     "bar",
+			Region: "us-west-1",
+			Tag:    "baz",
+			Status: volume.Available,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.DeleteVolumeRequest
+	}
+	tests := []struct {
+		name    string
+		args    []args
+		want    []*svc.DeleteVolumeResponse
+		wantErr []bool
+	}{
+		{
+			"unavailable volume",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeleteVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "foo",
+						},
+					},
+				},
+			},
+			[]*svc.DeleteVolumeResponse{
+				{},
+			},
+			[]bool{false},
+		},
+		{
+			"available volume",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeleteVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "bar",
+						},
+					},
+				},
+			},
+			[]*svc.DeleteVolumeResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"nonexistent volume",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeleteVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "baz",
+						},
+					},
+				},
+			},
+			[]*svc.DeleteVolumeResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv.b = backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorAdminClient(conn)
+
+			for i, req := range tt.args {
+				got, err := client.DeleteVolume(req.ctx, req.req)
+				if (err != nil) != tt.wantErr[i] {
+					t.Errorf("Server.DeleteVolume() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !proto.Equal(got, tt.want[i]) {
+					t.Errorf("Server.DeleteVolume() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}

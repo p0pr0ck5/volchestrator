@@ -60,6 +60,12 @@ message UpdateVolumeRequest {
 
 message UpdateVolumeResponse {}
 
+message DeleteVolumeRequest {
+  Volume volume = 1;
+}
+
+message DeleteVolumeResponse {}
+
 service VolchestratorAdmin {
   rpc GetClient(GetClientRequest) returns (GetClientResponse) {}
   rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {}
@@ -67,4 +73,5 @@ service VolchestratorAdmin {
   rpc GetVolume(GetVolumeRequest) returns (GetVolumeResponse) {}
   rpc AddVolume(AddVolumeRequest) returns (AddVolumeResponse) {}
   rpc UpdateVolume(UpdateVolumeRequest) returns (UpdateVolumeResponse) {}
+  rpc DeleteVolume(DeleteVolumeRequest) returns (DeleteVolumeResponse) {}
 }
