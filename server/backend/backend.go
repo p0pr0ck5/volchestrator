@@ -3,10 +3,10 @@ package backend
 import (
 	"time"
 
-	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
-	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/pkg/errors"
 
+	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
+	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
