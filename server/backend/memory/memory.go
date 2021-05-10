@@ -2,6 +2,8 @@ package memory
 
 import (
 	"fmt"
+	"strings"
+	"sync"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/notification"
@@ -20,6 +22,10 @@ type Memory struct {
 	volumeMap volumeMap
 
 	notificationChMap map[string]chan *notification.Notification
+
+	dataLocks map[string]*sync.Mutex
+	// lock map lock
+	ll sync.Mutex
 }
 
 func NewMemoryBackend() *Memory {
@@ -27,6 +33,7 @@ func NewMemoryBackend() *Memory {
 		clientMap:         make(map[string]*client.Client),
 		volumeMap:         make(map[string]*volume.Volume),
 		notificationChMap: make(map[string]chan *notification.Notification),
+		dataLocks:         make(map[string]*sync.Mutex),
 	}
 
 	return m
@@ -48,6 +55,9 @@ func (m *Memory) getMap(entityType string) dataMap {
 }
 
 func (m *Memory) read(id, entityType string) (interface{}, error) {
+	m.lockResource("read", entityType, id)
+	defer m.unlockResource("read", entityType, id)
+
 	entity, exists := m.getMap(entityType).Get(id)
 	if !exists {
 		return nil, fmt.Errorf("%s %q not found", entityType, id)
@@ -77,6 +87,8 @@ func (m *Memory) cud(op string, entity interface{}) error {
 		panic(fmt.Sprintf("invalid entity type %q", t))
 	}
 
+	m.lockResource(op, ctx, i)
+
 	_, exists := e.Get(i)
 
 	switch op {
@@ -100,5 +112,46 @@ func (m *Memory) cud(op string, entity interface{}) error {
 		e.Delete(i)
 	}
 
+	m.unlockResource(op, ctx, i)
+
 	return nil
+}
+
+func (m *Memory) lockResource(op string, s ...string) {
+	m.ll.Lock()
+	defer m.ll.Unlock()
+
+	lockName := strings.Join(s, ":")
+	var lock = &sync.Mutex{}
+
+	switch op {
+	case "create":
+		m.dataLocks[lockName] = lock
+	case "read", "update", "delete":
+		lock = m.dataLocks[lockName]
+	}
+
+	if lock == nil {
+		return
+	}
+
+	lock.Lock()
+}
+
+func (m *Memory) unlockResource(op string, s ...string) {
+	m.ll.Lock()
+	defer m.ll.Unlock()
+
+	lockName := strings.Join(s, ":")
+	lock := m.dataLocks[lockName]
+
+	if lock == nil {
+		return
+	}
+
+	lock.Unlock()
+
+	if op == "delete" {
+		delete(m.dataLocks, lockName)
+	}
 }

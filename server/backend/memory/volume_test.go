@@ -2,6 +2,7 @@ package memory
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/p0pr0ck5/volchestrator/server/volume"
@@ -10,6 +11,7 @@ import (
 func TestMemory_ReadVolume(t *testing.T) {
 	type fields struct {
 		volumeMap volumeMap
+		dataLocks map[string]*sync.Mutex
 	}
 	type args struct {
 		id string
@@ -29,6 +31,7 @@ func TestMemory_ReadVolume(t *testing.T) {
 						ID: "foo",
 					},
 				},
+				dataLocks: make(map[string]*sync.Mutex),
 			},
 			args{
 				"foo",
@@ -46,6 +49,7 @@ func TestMemory_ReadVolume(t *testing.T) {
 						ID: "foo",
 					},
 				},
+				dataLocks: make(map[string]*sync.Mutex),
 			},
 			args{
 				"bar",
@@ -58,6 +62,7 @@ func TestMemory_ReadVolume(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
 				volumeMap: tt.fields.volumeMap,
+				dataLocks: tt.fields.dataLocks,
 			}
 			got, err := m.ReadVolume(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -74,6 +79,7 @@ func TestMemory_ReadVolume(t *testing.T) {
 func TestMemory_ListVolumes(t *testing.T) {
 	type fields struct {
 		volumeMap volumeMap
+		dataLocks map[string]*sync.Mutex
 	}
 	tests := []struct {
 		name    string
@@ -89,6 +95,7 @@ func TestMemory_ListVolumes(t *testing.T) {
 						ID: "foo",
 					},
 				},
+				dataLocks: make(map[string]*sync.Mutex),
 			},
 			[]*volume.Volume{
 				{
@@ -132,6 +139,7 @@ func TestMemory_ListVolumes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
 				volumeMap: tt.fields.volumeMap,
+				dataLocks: tt.fields.dataLocks,
 			}
 			got, err := m.ListVolumes()
 			if (err != nil) != tt.wantErr {
@@ -148,6 +156,7 @@ func TestMemory_ListVolumes(t *testing.T) {
 func TestMemory_CreateVolume(t *testing.T) {
 	type fields struct {
 		volumeMap volumeMap
+		dataLocks map[string]*sync.Mutex
 	}
 	type args struct {
 		volume *volume.Volume
@@ -166,6 +175,7 @@ func TestMemory_CreateVolume(t *testing.T) {
 						ID: "foo",
 					},
 				},
+				dataLocks: make(map[string]*sync.Mutex),
 			},
 			args{
 				volume: &volume.Volume{
@@ -182,6 +192,7 @@ func TestMemory_CreateVolume(t *testing.T) {
 						ID: "foo",
 					},
 				},
+				dataLocks: make(map[string]*sync.Mutex),
 			},
 			args{
 				volume: &volume.Volume{
@@ -195,6 +206,7 @@ func TestMemory_CreateVolume(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
 				volumeMap: tt.fields.volumeMap,
+				dataLocks: tt.fields.dataLocks,
 			}
 			if err := m.CreateVolume(tt.args.volume); (err != nil) != tt.wantErr {
 				t.Errorf("Memory.CreateVolume() error = %v, wantErr %v", err, tt.wantErr)
@@ -206,6 +218,7 @@ func TestMemory_CreateVolume(t *testing.T) {
 func TestMemory_UpdateVolume(t *testing.T) {
 	type fields struct {
 		volumeMap map[string]*volume.Volume
+		dataLocks map[string]*sync.Mutex
 	}
 	type args struct {
 		volume *volume.Volume
@@ -224,6 +237,7 @@ func TestMemory_UpdateVolume(t *testing.T) {
 						ID: "foo",
 					},
 				},
+				dataLocks: make(map[string]*sync.Mutex),
 			},
 			args{
 				volume: &volume.Volume{
@@ -240,6 +254,7 @@ func TestMemory_UpdateVolume(t *testing.T) {
 						ID: "foo",
 					},
 				},
+				dataLocks: make(map[string]*sync.Mutex),
 			},
 			args{
 				volume: &volume.Volume{
@@ -253,6 +268,7 @@ func TestMemory_UpdateVolume(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
 				volumeMap: tt.fields.volumeMap,
+				dataLocks: tt.fields.dataLocks,
 			}
 			if err := m.UpdateVolume(tt.args.volume); (err != nil) != tt.wantErr {
 				t.Errorf("Memory.UpdateVolume() error = %v, wantErr %v", err, tt.wantErr)
@@ -264,6 +280,7 @@ func TestMemory_UpdateVolume(t *testing.T) {
 func TestMemory_DeleteVolume(t *testing.T) {
 	type fields struct {
 		volumeMap volumeMap
+		dataLocks map[string]*sync.Mutex
 	}
 	type args struct {
 		volume *volume.Volume
@@ -282,6 +299,7 @@ func TestMemory_DeleteVolume(t *testing.T) {
 						ID: "foo",
 					},
 				},
+				dataLocks: make(map[string]*sync.Mutex),
 			},
 			args{
 				volume: &volume.Volume{
@@ -298,6 +316,7 @@ func TestMemory_DeleteVolume(t *testing.T) {
 						ID: "foo",
 					},
 				},
+				dataLocks: make(map[string]*sync.Mutex),
 			},
 			args{
 				volume: &volume.Volume{
@@ -311,6 +330,7 @@ func TestMemory_DeleteVolume(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
 				volumeMap: tt.fields.volumeMap,
+				dataLocks: tt.fields.dataLocks,
 			}
 			if err := m.DeleteVolume(tt.args.volume); (err != nil) != tt.wantErr {
 				t.Errorf("Memory.DeleteVolume() error = %v, wantErr %v", err, tt.wantErr)
