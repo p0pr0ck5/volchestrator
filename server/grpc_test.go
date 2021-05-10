@@ -14,6 +14,7 @@ import (
 
 	"github.com/p0pr0ck5/volchestrator/server/backend"
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
@@ -1230,6 +1231,155 @@ func Test_DeleteVolume(t *testing.T) {
 				}
 				if !proto.Equal(got, tt.want[i]) {
 					t.Errorf("Server.DeleteVolume() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func Test_WatchNotifications(t *testing.T) {
+	mockNow := time.Now()
+
+	mockClients := []*client.Client{
+		{
+			ID:         "foo",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+		{
+			ID:         "bar",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.WatchNotificationsRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		send    []*notification.Notification
+		want    []*svc.WatchNotificationsResponse
+		wantErr bool
+	}{
+		{
+			"one message for one client",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+				},
+			},
+			[]*notification.Notification{
+				{
+					ClientID: "foo",
+					Message:  "bar",
+				},
+			},
+			[]*svc.WatchNotificationsResponse{
+				{
+					Notification: &svc.Notification{
+						Message: "bar",
+					},
+				},
+			},
+			false,
+		},
+		/*{ // skipping for now until i can drain everything
+			"one message for each client",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+				},
+			},
+			[]*notification.Notification{
+				{
+					ClientID: "foo",
+					Message:  "bar",
+				},
+				{
+					ClientID: "bar",
+					Message:  "baz",
+				},
+			},
+			[]*svc.WatchNotificationsResponse{
+				{
+					Notification: &svc.Notification{
+						Message: "bar",
+					},
+				},
+			},
+			false,
+		},*/
+		{
+			"two messages for one client",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+				},
+			},
+			[]*notification.Notification{
+				{
+					ClientID: "foo",
+					Message:  "bar",
+				},
+				{
+					ClientID: "foo",
+					Message:  "baz",
+				},
+			},
+			[]*svc.WatchNotificationsResponse{
+				{
+					Notification: &svc.Notification{
+						Message: "bar",
+					},
+				},
+				{
+					Notification: &svc.Notification{
+						Message: "baz",
+					},
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
+
+			go func() {
+				for _, n := range tt.send {
+					srv.b.WriteNotification(n)
+				}
+			}()
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorClient(conn)
+
+			stream, err := client.WatchNotifications(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Server.WatchNotifications() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			for _, want := range tt.want {
+				got, err := stream.Recv()
+				if err != nil {
+					t.Errorf("error in stream recv %v", err)
+					return
+				}
+
+				if !proto.Equal(got, want) {
+					t.Errorf("Server.WatchNotifications() = %v, want %v", got, want)
 				}
 			}
 		})
