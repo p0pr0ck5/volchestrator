@@ -1,8 +1,13 @@
 package server
 
 import (
+	"reflect"
 	"testing"
+	"time"
 
+	"github.com/p0pr0ck5/volchestrator/server/backend"
+	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/config"
 	"github.com/pkg/errors"
 )
 
@@ -89,6 +94,90 @@ func TestServer_Shutdown(t *testing.T) {
 
 			if ok != tt.want {
 				t.Errorf("Shutdown() shutdownCh = %v, want %v", ok, tt.want)
+			}
+		})
+	}
+}
+
+func TestServer_PruneClients(t *testing.T) {
+	ttl := time.Duration(30)
+
+	mockNow := time.Now()
+	mockThen := time.Now().Add(time.Second * -ttl)
+
+	mockClients := []*client.Client{
+		{
+			ID:         "foo",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+		{
+			ID:         "bar",
+			Registered: mockThen,
+			LastSeen:   mockThen,
+		},
+	}
+
+	tests := []struct {
+		name    string
+		clients []*client.Client
+		want    []*client.Client
+	}{
+		{
+			"prune one client",
+			mockClients,
+			[]*client.Client{
+				mockClients[0],
+			},
+		},
+		{
+			"prune multiple clients",
+			[]*client.Client{
+				mockClients[0],
+				mockClients[1],
+				{
+					ID:         "baz",
+					Registered: mockThen,
+					LastSeen:   mockThen,
+				},
+			},
+			[]*client.Client{
+				mockClients[0],
+			},
+		},
+		{
+			"prune no clients",
+			[]*client.Client{
+				mockClients[0],
+			},
+			[]*client.Client{
+				mockClients[0],
+			},
+		},
+		{
+			"prune empty client list",
+			[]*client.Client{},
+			[]*client.Client{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &config.Config{
+				ClientTTL: int(ttl * 2 / 3),
+			}
+
+			s, _ := NewServer(
+				WithConfig(config),
+				WithBackend(backend.NewMemoryBackend(backend.WithClients(tt.clients))),
+			)
+
+			if err := s.PruneClients(); err != nil {
+				t.Errorf("Server.PruneClients() error = %v", err)
+			}
+
+			clients, _ := s.b.ListClients()
+			if !reflect.DeepEqual(clients, tt.want) {
+				t.Errorf("Server.ListClients() = %v, want %v", clients, tt.want)
 			}
 		})
 	}
