@@ -21,14 +21,12 @@ import (
 
 const bufSize = 1024 * 1024
 
-var lis *bufconn.Listener
+type bufDialFunc func(context.Context, string) (net.Conn, error)
 
-var srv *Server
-
-func init() {
-	lis = bufconn.Listen(bufSize)
+func mockServer() (*Server, bufDialFunc) {
+	lis := bufconn.Listen(bufSize)
 	s := grpc.NewServer()
-	srv, _ = NewServer(WithNewMemoryBackend())
+	srv, _ := NewServer(WithNewMemoryBackend())
 	svc.RegisterVolchestratorServer(s, srv)
 	svc.RegisterVolchestratorAdminServer(s, srv)
 	go func() {
@@ -36,10 +34,10 @@ func init() {
 			log.Fatalf("Server exited with error: %v", err)
 		}
 	}()
-}
 
-func bufDialer(context.Context, string) (net.Conn, error) {
-	return lis.Dial()
+	return srv, func(context.Context, string) (net.Conn, error) {
+		return lis.Dial()
+	}
 }
 
 func Test_Register(t *testing.T) {
@@ -216,6 +214,7 @@ func Test_Register(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend()
 
 			ctx := context.Background()
@@ -241,7 +240,7 @@ func Test_Register(t *testing.T) {
 }
 
 func Test_Ping(t *testing.T) {
-	preregister := func(id string) {
+	preregister := func(srv *Server, id string) {
 		srv.Register(context.Background(), &svc.RegisterRequest{ClientId: id})
 	}
 
@@ -250,7 +249,7 @@ func Test_Ping(t *testing.T) {
 		req *svc.PingRequest
 	}
 	type prefunc struct {
-		f   func(string)
+		f   func(*Server, string)
 		arg string
 	}
 	tests := []struct {
@@ -417,10 +416,11 @@ func Test_Ping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend()
 
 			for _, prefunc := range tt.preFunctions {
-				prefunc.f(prefunc.arg)
+				prefunc.f(srv, prefunc.arg)
 			}
 
 			ctx := context.Background()
@@ -546,6 +546,7 @@ func Test_GetClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
 
 			ctx := context.Background()
@@ -617,6 +618,7 @@ func Test_ListClients(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
 
 			ctx := context.Background()
@@ -743,6 +745,7 @@ func Test_GetVolume(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))
 
 			ctx := context.Background()
@@ -948,6 +951,7 @@ func Test_AddVolume(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))
 
 			ctx := context.Background()
@@ -1082,6 +1086,7 @@ func Test_UpdateVolume(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))
 
 			ctx := context.Background()
@@ -1213,6 +1218,7 @@ func Test_DeleteVolume(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))
 
 			ctx := context.Background()
@@ -1287,7 +1293,7 @@ func Test_WatchNotifications(t *testing.T) {
 			},
 			false,
 		},
-		/*{ // skipping for now until i can drain everything
+		{
 			"one message for each client",
 			args{
 				context.Background(),
@@ -1313,7 +1319,7 @@ func Test_WatchNotifications(t *testing.T) {
 				},
 			},
 			false,
-		},*/
+		},
 		{
 			"two messages for one client",
 			args{
@@ -1349,6 +1355,7 @@ func Test_WatchNotifications(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
 
 			go func() {
