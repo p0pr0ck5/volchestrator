@@ -54,3 +54,42 @@ func TestNewServer(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_Shutdown(t *testing.T) {
+	tests := []struct {
+		name     string
+		shutdown bool
+		want     bool
+	}{
+		{
+			"shutdownCh closed following shutdown",
+			true,
+			false,
+		},
+		{
+			"shutdownCh open",
+			false,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, _ := NewServer()
+
+			if tt.shutdown {
+				s.Shutdown()
+			}
+
+			ok := true
+
+			select {
+			case _, ok = <-s.shutdownCh:
+			default:
+			}
+
+			if ok != tt.want {
+				t.Errorf("Shutdown() shutdownCh = %v, want %v", ok, tt.want)
+			}
+		})
+	}
+}

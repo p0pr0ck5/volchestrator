@@ -12,10 +12,14 @@ type Server struct {
 	svc.UnimplementedVolchestratorAdminServer
 
 	b *backend.Backend
+
+	shutdownCh chan struct{}
 }
 
 func NewServer(opts ...ServerOpt) (*Server, error) {
-	s := &Server{}
+	s := &Server{
+		shutdownCh: make(chan struct{}),
+	}
 
 	for _, opt := range opts {
 		err := opt(s)
@@ -25,4 +29,8 @@ func NewServer(opts ...ServerOpt) (*Server, error) {
 	}
 
 	return s, nil
+}
+
+func (s *Server) Shutdown() {
+	close(s.shutdownCh)
 }

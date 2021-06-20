@@ -58,11 +58,18 @@ func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream s
 		return errors.New("no notifications channel")
 	}
 
-	for notif := range ch {
-		stream.Send(&svc.WatchNotificationsResponse{
-			Notification: toProto(notif).(*svc.Notification),
-		})
-	}
+	for {
+		select {
+		case <-s.shutdownCh:
+			return nil
+		case notif := <-ch:
+			if notif == nil {
+				return nil
+			}
 
-	return nil
+			stream.Send(&svc.WatchNotificationsResponse{
+				Notification: toProto(notif).(*svc.Notification),
+			})
+		}
+	}
 }
