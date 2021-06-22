@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server/backend"
+	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/config"
 	"github.com/pkg/errors"
@@ -178,6 +179,70 @@ func TestServer_PruneClients(t *testing.T) {
 			clients, _ := s.b.ListClients()
 			if !reflect.DeepEqual(clients, tt.want) {
 				t.Errorf("Server.ListClients() = %v, want %v", clients, tt.want)
+			}
+		})
+	}
+}
+
+func TestServer_PruneClientsReturn(t *testing.T) {
+	ttl := time.Duration(30)
+
+	mockThen := time.Now().Add(time.Second * -ttl)
+
+	lister := func(s string) func() ([]*client.Client, error) {
+		return func() ([]*client.Client, error) {
+			if s == "" {
+				return nil, errors.New("bad")
+			}
+
+			return []*client.Client{
+				{
+					ID:         s,
+					Registered: mockThen,
+					LastSeen:   mockThen,
+				},
+			}, nil
+		}
+	}
+
+	tests := []struct {
+		name    string
+		lister  func() ([]*client.Client, error)
+		wantErr bool
+	}{
+		{
+			"no error",
+			lister("foo"),
+			false,
+		},
+		{
+			"error during delete client",
+			lister("bad"),
+			true,
+		},
+		{
+			"error during list client",
+			lister(""),
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &config.Config{
+				ClientTTL: int(ttl * 2 / 3),
+			}
+
+			b := mock.NewMockBackend()
+			b.ClientLister = tt.lister
+
+			s, _ := NewServer(
+				WithConfig(config),
+				WithBackend(backend.NewMockBackend(backend.WithMockBackend(b))),
+			)
+
+			if err := s.PruneClients(); (err != nil) != tt.wantErr {
+				t.Errorf("s.PruneClients() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 		})
 	}

@@ -14,7 +14,10 @@ func nowIsh() time.Time {
 	return t.Round(time.Hour)
 }
 
-type MockBackend struct{}
+type MockBackend struct {
+	ClientLister func() ([]*client.Client, error)
+	VolumeLister func() ([]*volume.Volume, error)
+}
 
 func NewMockBackend() *MockBackend {
 	return &MockBackend{}
@@ -35,6 +38,10 @@ func (m *MockBackend) ReadClient(id string) (*client.Client, error) {
 }
 
 func (m *MockBackend) ListClients() ([]*client.Client, error) {
+	if m.ClientLister != nil {
+		return m.ClientLister()
+	}
+
 	return []*client.Client{
 		{
 			ID:         "foo",
@@ -84,6 +91,10 @@ func (m *MockBackend) ReadVolume(id string) (*volume.Volume, error) {
 }
 
 func (m *MockBackend) ListVolumes() ([]*volume.Volume, error) {
+	if m.VolumeLister != nil {
+		return m.VolumeLister()
+	}
+
 	return []*volume.Volume{
 		{
 			ID:     "foo",

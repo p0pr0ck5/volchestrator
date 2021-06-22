@@ -53,9 +53,13 @@ func NewMemoryBackend(opts ...BackendOpt) *Backend {
 	return b
 }
 
-func NewMockBackend() *Backend {
+func NewMockBackend(opts ...BackendOpt) *Backend {
 	b := &Backend{
 		b: mock.NewMockBackend(),
+	}
+
+	for _, opt := range opts {
+		opt(b)
 	}
 
 	return b

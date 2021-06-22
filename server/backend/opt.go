@@ -2,6 +2,7 @@ package backend
 
 import (
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
+	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
@@ -9,6 +10,14 @@ import (
 type BackendOpt func(*Backend) error
 
 func WithMemoryBackend(m *memory.Memory) BackendOpt {
+	return func(b *Backend) error {
+		b.b = m
+
+		return nil
+	}
+}
+
+func WithMockBackend(m *mock.MockBackend) BackendOpt {
 	return func(b *Backend) error {
 		b.b = m
 
