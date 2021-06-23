@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/svc"
@@ -61,7 +63,7 @@ func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream s
 	for {
 		select {
 		case <-s.shutdownCh:
-			return nil
+			return status.Error(codes.Unavailable, "shutting down")
 		case notif := <-ch:
 			if notif == nil {
 				return nil

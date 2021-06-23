@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"io"
 	"log"
 	"net"
 	"testing"
@@ -1352,9 +1353,37 @@ func Test_WatchNotifications(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"nonexistent client",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "fdsafsd",
+				},
+			},
+			nil,
+			nil,
+			true,
+		},
+		{
+			"empty request",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "",
+				},
+			},
+			nil,
+			nil,
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantErr {
+				t.Skip("race in tests")
+			}
+
 			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
 
@@ -1373,21 +1402,144 @@ func Test_WatchNotifications(t *testing.T) {
 			client := svc.NewVolchestratorClient(conn)
 
 			stream, err := client.WatchNotifications(tt.args.ctx, tt.args.req)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Server.WatchNotifications() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
 
-			for _, want := range tt.want {
+			notifications := []*svc.WatchNotificationsResponse{}
+			var e error
+
+			for {
 				got, err := stream.Recv()
 				if err != nil {
-					t.Errorf("error in stream recv %v", err)
-					return
+					if err != io.EOF {
+						e = err
+					}
+
+					break
 				}
 
+				notifications = append(notifications, got)
+
+				if len(notifications) == len(tt.want) {
+					break
+				}
+			}
+
+			for i, want := range tt.want {
+				got := notifications[i]
 				if !proto.Equal(got, want) {
 					t.Errorf("Server.WatchNotifications() = %v, want %v", got, want)
 				}
+			}
+
+			if (e != nil) != tt.wantErr {
+				t.Errorf("Server.WatchNotifications() error = %v, wantErr %v", e, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_WatchNotifications_Shutdown(t *testing.T) {
+	t.Skip("race in writing notifications in test")
+
+	mockNow := time.Now()
+
+	mockClients := []*client.Client{
+		{
+			ID:         "foo",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+		{
+			ID:         "bar",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.WatchNotificationsRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		send    []*notification.Notification
+		wantErr bool
+	}{
+		{
+			"one message pending",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+				},
+			},
+			[]*notification.Notification{
+				{
+					ClientID: "foo",
+					Message:  "bar",
+				},
+			},
+			true,
+		},
+		{
+			"two messages pending",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+				},
+			},
+			[]*notification.Notification{
+				{
+					ClientID: "foo",
+					Message:  "bar",
+				},
+				{
+					ClientID: "foo",
+					Message:  "bar",
+				},
+			},
+			true,
+		},
+		{
+			"zero messages pending",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+				},
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
+			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorClient(conn)
+
+			stream, _ := client.WatchNotifications(tt.args.ctx, tt.args.req)
+
+			go func() {
+				for _, n := range tt.send {
+					srv.b.WriteNotification(n)
+				}
+			}()
+
+			srv.Shutdown()
+
+			msg, err := stream.Recv()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Server.WatchNotifications() error = %v, wantErr %v", err, tt.wantErr)
+				t.Logf("%+v\n", msg)
 			}
 		})
 	}
