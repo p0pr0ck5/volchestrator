@@ -1380,18 +1380,12 @@ func Test_WatchNotifications(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.wantErr {
-				t.Skip("race in tests")
-			}
-
 			srv, bufDialer := mockServer()
 			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
 
-			go func() {
-				for _, n := range tt.send {
-					srv.b.WriteNotification(n)
-				}
-			}()
+			for _, n := range tt.send {
+				srv.b.WriteNotification(n)
+			}
 
 			ctx := context.Background()
 			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
@@ -1438,8 +1432,6 @@ func Test_WatchNotifications(t *testing.T) {
 }
 
 func Test_WatchNotifications_Shutdown(t *testing.T) {
-	t.Skip("race in writing notifications in test")
-
 	mockNow := time.Now()
 
 	mockClients := []*client.Client{
@@ -1528,11 +1520,9 @@ func Test_WatchNotifications_Shutdown(t *testing.T) {
 
 			stream, _ := client.WatchNotifications(tt.args.ctx, tt.args.req)
 
-			go func() {
-				for _, n := range tt.send {
-					srv.b.WriteNotification(n)
-				}
-			}()
+			for _, n := range tt.send {
+				srv.b.WriteNotification(n)
+			}
 
 			srv.Shutdown()
 

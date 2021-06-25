@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
-	"github.com/p0pr0ck5/volchestrator/server/notification"
 )
 
 func TestMemory_ReadClient(t *testing.T) {
 	type fields struct {
-		clientMap         clientMap
-		notificationChMap map[string]chan *notification.Notification
-		dataLocks         map[string]*sync.Mutex
+		clientMap       clientMap
+		notificationMap map[string]*ChQueue
+		dataLocks       map[string]*sync.Mutex
 	}
 	type args struct {
 		id string
@@ -34,8 +33,8 @@ func TestMemory_ReadClient(t *testing.T) {
 						ID: "foo",
 					},
 				},
-				notificationChMap: map[string]chan *notification.Notification{
-					"foo": make(chan *notification.Notification),
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
 				},
 				dataLocks: make(map[string]*sync.Mutex),
 			},
@@ -55,8 +54,8 @@ func TestMemory_ReadClient(t *testing.T) {
 						ID: "foo",
 					},
 				},
-				notificationChMap: map[string]chan *notification.Notification{
-					"foo": make(chan *notification.Notification),
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
 				},
 				dataLocks: make(map[string]*sync.Mutex),
 			},
@@ -70,9 +69,9 @@ func TestMemory_ReadClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
-				clientMap:         tt.fields.clientMap,
-				notificationChMap: tt.fields.notificationChMap,
-				dataLocks:         tt.fields.dataLocks,
+				clientMap:       tt.fields.clientMap,
+				notificationMap: tt.fields.notificationMap,
+				dataLocks:       tt.fields.dataLocks,
 			}
 			got, err := m.ReadClient(tt.args.id)
 			if (err != nil) != tt.wantErr {
@@ -88,9 +87,9 @@ func TestMemory_ReadClient(t *testing.T) {
 
 func TestMemory_ListClients(t *testing.T) {
 	type fields struct {
-		clientMap         clientMap
-		notificationChMap map[string]chan *notification.Notification
-		dataLocks         map[string]*sync.Mutex
+		clientMap       clientMap
+		notificationMap map[string]*ChQueue
+		dataLocks       map[string]*sync.Mutex
 	}
 	tests := []struct {
 		name    string
@@ -106,8 +105,8 @@ func TestMemory_ListClients(t *testing.T) {
 						ID: "foo",
 					},
 				},
-				notificationChMap: map[string]chan *notification.Notification{
-					"foo": make(chan *notification.Notification),
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
 				},
 				dataLocks: make(map[string]*sync.Mutex),
 			},
@@ -152,9 +151,9 @@ func TestMemory_ListClients(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
-				clientMap:         tt.fields.clientMap,
-				notificationChMap: tt.fields.notificationChMap,
-				dataLocks:         tt.fields.dataLocks,
+				clientMap:       tt.fields.clientMap,
+				notificationMap: tt.fields.notificationMap,
+				dataLocks:       tt.fields.dataLocks,
 			}
 			got, err := m.ListClients()
 			if (err != nil) != tt.wantErr {
@@ -170,9 +169,9 @@ func TestMemory_ListClients(t *testing.T) {
 
 func TestMemory_CreateClient(t *testing.T) {
 	type fields struct {
-		clientMap         clientMap
-		notificationChMap map[string]chan *notification.Notification
-		dataLocks         map[string]*sync.Mutex
+		clientMap       clientMap
+		notificationMap map[string]*ChQueue
+		dataLocks       map[string]*sync.Mutex
 	}
 	type args struct {
 		client *client.Client
@@ -191,8 +190,8 @@ func TestMemory_CreateClient(t *testing.T) {
 						ID: "foo",
 					},
 				},
-				notificationChMap: map[string]chan *notification.Notification{
-					"foo": make(chan *notification.Notification),
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
 				},
 				dataLocks: make(map[string]*sync.Mutex),
 			},
@@ -211,8 +210,8 @@ func TestMemory_CreateClient(t *testing.T) {
 						ID: "foo",
 					},
 				},
-				notificationChMap: map[string]chan *notification.Notification{
-					"foo": make(chan *notification.Notification),
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
 				},
 				dataLocks: make(map[string]*sync.Mutex),
 			},
@@ -227,9 +226,9 @@ func TestMemory_CreateClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
-				clientMap:         tt.fields.clientMap,
-				notificationChMap: tt.fields.notificationChMap,
-				dataLocks:         tt.fields.dataLocks,
+				clientMap:       tt.fields.clientMap,
+				notificationMap: tt.fields.notificationMap,
+				dataLocks:       tt.fields.dataLocks,
 			}
 			if err := m.CreateClient(tt.args.client); (err != nil) != tt.wantErr {
 				t.Errorf("Memory.CreateClient() error = %v, wantErr %v", err, tt.wantErr)
@@ -240,9 +239,9 @@ func TestMemory_CreateClient(t *testing.T) {
 
 func TestMemory_UpdateClient(t *testing.T) {
 	type fields struct {
-		clientMap         map[string]*client.Client
-		notificationChMap map[string]chan *notification.Notification
-		dataLocks         map[string]*sync.Mutex
+		clientMap       map[string]*client.Client
+		notificationMap map[string]*ChQueue
+		dataLocks       map[string]*sync.Mutex
 	}
 	type args struct {
 		client *client.Client
@@ -261,8 +260,8 @@ func TestMemory_UpdateClient(t *testing.T) {
 						ID: "foo",
 					},
 				},
-				notificationChMap: map[string]chan *notification.Notification{
-					"foo": make(chan *notification.Notification),
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
 				},
 				dataLocks: make(map[string]*sync.Mutex),
 			},
@@ -281,8 +280,8 @@ func TestMemory_UpdateClient(t *testing.T) {
 						ID: "foo",
 					},
 				},
-				notificationChMap: map[string]chan *notification.Notification{
-					"foo": make(chan *notification.Notification),
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
 				},
 				dataLocks: make(map[string]*sync.Mutex),
 			},
@@ -297,9 +296,9 @@ func TestMemory_UpdateClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
-				clientMap:         tt.fields.clientMap,
-				notificationChMap: tt.fields.notificationChMap,
-				dataLocks:         tt.fields.dataLocks,
+				clientMap:       tt.fields.clientMap,
+				notificationMap: tt.fields.notificationMap,
+				dataLocks:       tt.fields.dataLocks,
 			}
 			if err := m.UpdateClient(tt.args.client); (err != nil) != tt.wantErr {
 				t.Errorf("Memory.UpdateClient() error = %v, wantErr %v", err, tt.wantErr)
@@ -310,9 +309,9 @@ func TestMemory_UpdateClient(t *testing.T) {
 
 func TestMemory_DeleteClient(t *testing.T) {
 	type fields struct {
-		clientMap         clientMap
-		notificationChMap map[string]chan *notification.Notification
-		dataLocks         map[string]*sync.Mutex
+		clientMap       clientMap
+		notificationMap map[string]*ChQueue
+		dataLocks       map[string]*sync.Mutex
 	}
 	type args struct {
 		client *client.Client
@@ -332,8 +331,8 @@ func TestMemory_DeleteClient(t *testing.T) {
 						Registered: time.Now(),
 					},
 				},
-				notificationChMap: map[string]chan *notification.Notification{
-					"foo": make(chan *notification.Notification),
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
 				},
 				dataLocks: make(map[string]*sync.Mutex),
 			},
@@ -365,9 +364,9 @@ func TestMemory_DeleteClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
-				clientMap:         tt.fields.clientMap,
-				notificationChMap: tt.fields.notificationChMap,
-				dataLocks:         tt.fields.dataLocks,
+				clientMap:       tt.fields.clientMap,
+				notificationMap: tt.fields.notificationMap,
+				dataLocks:       tt.fields.dataLocks,
 			}
 			if err := m.DeleteClient(tt.args.client); (err != nil) != tt.wantErr {
 				t.Errorf("Memory.DeleteClient() error = %v, wantErr %v", err, tt.wantErr)

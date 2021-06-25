@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
-	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
@@ -21,7 +20,7 @@ type Memory struct {
 	clientMap clientMap
 	volumeMap volumeMap
 
-	notificationChMap map[string]chan *notification.Notification
+	notificationMap map[string]*ChQueue
 
 	dataLocks map[string]*sync.Mutex
 	// lock map lock
@@ -30,10 +29,10 @@ type Memory struct {
 
 func NewMemoryBackend() *Memory {
 	m := &Memory{
-		clientMap:         make(map[string]*client.Client),
-		volumeMap:         make(map[string]*volume.Volume),
-		notificationChMap: make(map[string]chan *notification.Notification),
-		dataLocks:         make(map[string]*sync.Mutex),
+		clientMap:       make(clientMap),
+		volumeMap:       make(volumeMap),
+		notificationMap: make(map[string]*ChQueue),
+		dataLocks:       make(map[string]*sync.Mutex),
 	}
 
 	return m

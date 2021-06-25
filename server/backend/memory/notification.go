@@ -11,16 +11,24 @@ import (
 func (m *Memory) WriteNotification(n *notification.Notification) error {
 	clientID := n.ClientID
 
-	ch, exists := m.notificationChMap[clientID]
-	if !exists {
-		return errors.New(fmt.Sprintf("no notification channel for client %q", clientID))
+	queue, ok := m.notificationMap[clientID]
+	if !ok {
+		return errors.New(fmt.Sprintf("no notification queue for client %q", clientID))
 	}
 
-	ch <- n
-
-	return nil
+	return queue.Write(n)
 }
 
 func (m *Memory) GetNotifications(id string) (<-chan *notification.Notification, error) {
-	return m.notificationChMap[id], nil
+	queue, ok := m.notificationMap[id]
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("no notification queue for client %q", id))
+	}
+
+	ch, err := queue.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	return ch, nil
 }

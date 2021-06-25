@@ -65,6 +65,11 @@ func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream s
 		case <-s.shutdownCh:
 			return status.Error(codes.Unavailable, "shutting down")
 		case notif := <-ch:
+			select {
+			case <-s.shutdownCh:
+				return status.Error(codes.Unavailable, "shutting down")
+			default:
+			}
 			if notif == nil {
 				return nil
 			}
