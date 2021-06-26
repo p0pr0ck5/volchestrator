@@ -22,6 +22,7 @@ message WatchNotificationsRequest {
 
 message Notification {
   string message = 1;
+  uint64 message_id = 2;
 }
 
 message WatchNotificationsResponse {

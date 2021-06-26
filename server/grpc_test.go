@@ -1288,7 +1288,8 @@ func Test_WatchNotifications(t *testing.T) {
 			[]*svc.WatchNotificationsResponse{
 				{
 					Notification: &svc.Notification{
-						Message: "bar",
+						Message:   "bar",
+						MessageId: 1,
 					},
 				},
 			},
@@ -1315,7 +1316,8 @@ func Test_WatchNotifications(t *testing.T) {
 			[]*svc.WatchNotificationsResponse{
 				{
 					Notification: &svc.Notification{
-						Message: "bar",
+						Message:   "bar",
+						MessageId: 1,
 					},
 				},
 			},
@@ -1342,12 +1344,104 @@ func Test_WatchNotifications(t *testing.T) {
 			[]*svc.WatchNotificationsResponse{
 				{
 					Notification: &svc.Notification{
-						Message: "bar",
+						Message:   "bar",
+						MessageId: 1,
 					},
 				},
 				{
 					Notification: &svc.Notification{
-						Message: "baz",
+						Message:   "baz",
+						MessageId: 2,
+					},
+				},
+			},
+			false,
+		},
+		{
+			"two messages for two clients",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+				},
+			},
+			[]*notification.Notification{
+				{
+					ClientID: "foo",
+					Message:  "bar",
+				},
+				{
+					ClientID: "bar",
+					Message:  "bar",
+				},
+				{
+					ClientID: "foo",
+					Message:  "baz",
+				},
+				{
+					ClientID: "bar",
+					Message:  "baz",
+				},
+			},
+			[]*svc.WatchNotificationsResponse{
+				{
+					Notification: &svc.Notification{
+						Message:   "bar",
+						MessageId: 1,
+					},
+				},
+				{
+					Notification: &svc.Notification{
+						Message:   "baz",
+						MessageId: 2,
+					},
+				},
+			},
+			false,
+		},
+		{
+			"three messages for one client",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+				},
+			},
+			[]*notification.Notification{
+				{
+					ClientID: "foo",
+					Message:  "bar",
+				},
+				{
+					ClientID: "bar",
+					Message:  "bar",
+				},
+				{
+					ClientID: "foo",
+					Message:  "baz",
+				},
+				{
+					ClientID: "foo",
+					Message:  "bat",
+				},
+			},
+			[]*svc.WatchNotificationsResponse{
+				{
+					Notification: &svc.Notification{
+						Message:   "bar",
+						MessageId: 1,
+					},
+				},
+				{
+					Notification: &svc.Notification{
+						Message:   "baz",
+						MessageId: 2,
+					},
+				},
+				{
+					Notification: &svc.Notification{
+						Message:   "bat",
+						MessageId: 3,
 					},
 				},
 			},

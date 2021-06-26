@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
@@ -84,6 +85,20 @@ func Test_toProto(t *testing.T) {
 				Region:   "us-west-2",
 				Tag:      "foo",
 				Status:   svc.Volume_Available,
+			},
+		},
+		{
+			"notification",
+			args{
+				from: &notification.Notification{
+					ClientID:  "foo",
+					Message:   "bar",
+					MessageID: 1,
+				},
+			},
+			&svc.Notification{
+				Message:   "bar",
+				MessageId: 1,
 			},
 		},
 	}

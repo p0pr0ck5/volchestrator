@@ -2,6 +2,7 @@ package server
 
 import (
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
@@ -42,6 +43,10 @@ func toProto(from interface{}) interface{} {
 			fieldName = ctx + "Id"
 		default:
 			fieldName = field.Name
+
+			if strings.HasSuffix(field.Name, "ID") {
+				fieldName = strings.TrimSuffix(field.Name, "ID") + "Id"
+			}
 		}
 
 		toField := reflect.ValueOf(to).Elem().FieldByName(fieldName)
@@ -51,6 +56,8 @@ func toProto(from interface{}) interface{} {
 				toField.SetString(val.Field(i).String())
 			case reflect.Int:
 				toField.SetInt(val.Field(i).Int())
+			case reflect.Uint64:
+				toField.SetUint(val.Field(i).Uint())
 			default:
 				switch field.Type.String() {
 				case "time.Time":

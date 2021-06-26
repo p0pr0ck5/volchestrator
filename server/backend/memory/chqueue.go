@@ -10,6 +10,9 @@ import (
 type ChQueue struct {
 	ch chan *notification.Notification
 
+	count     uint64
+	countLock sync.Mutex
+
 	wg sync.WaitGroup
 
 	shutdownCh chan struct{}
@@ -48,6 +51,11 @@ func (c *ChQueue) Write(n *notification.Notification) error {
 		return errors.New("closed")
 	default:
 	}
+
+	c.countLock.Lock()
+	c.count++
+	n.MessageID = c.count
+	c.countLock.Unlock()
 
 	go func(n *notification.Notification) {
 		c.wg.Add(1)
