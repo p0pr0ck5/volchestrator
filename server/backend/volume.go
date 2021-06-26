@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"sort"
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server/volume"
@@ -12,7 +13,13 @@ func (b *Backend) ReadVolume(id string) (*volume.Volume, error) {
 }
 
 func (b *Backend) ListVolumes() ([]*volume.Volume, error) {
-	return b.b.ListVolumes()
+	volumes, err := b.b.ListVolumes()
+
+	sort.Slice(volumes, func(i, j int) bool {
+		return volumes[i].ID < volumes[j].ID
+	})
+
+	return volumes, err
 }
 
 func (b *Backend) CreateVolume(v *volume.Volume) error {

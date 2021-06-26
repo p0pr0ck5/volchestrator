@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"sort"
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
@@ -11,7 +12,13 @@ func (b *Backend) ReadClient(id string) (*client.Client, error) {
 }
 
 func (b *Backend) ListClients() ([]*client.Client, error) {
-	return b.b.ListClients()
+	clients, err := b.b.ListClients()
+
+	sort.Slice(clients, func(i, j int) bool {
+		return clients[i].ID < clients[j].ID
+	})
+
+	return clients, err
 }
 
 func (b *Backend) CreateClient(c *client.Client) error {
