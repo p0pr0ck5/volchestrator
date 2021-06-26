@@ -582,6 +582,11 @@ func Test_ListClients(t *testing.T) {
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
+		{
+			ID:         "bar",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
 	}
 
 	type args struct {
@@ -605,6 +610,11 @@ func Test_ListClients(t *testing.T) {
 			[]*svc.ListClientsResponse{
 				{
 					Clients: []*svc.Client{
+						{
+							ClientId:   "bar",
+							Registered: mockTS,
+							LastSeen:   mockTS,
+						},
 						{
 							ClientId:   "foo",
 							Registered: mockTS,
@@ -1479,6 +1489,7 @@ func Test_WatchNotifications(t *testing.T) {
 
 			for _, n := range tt.send {
 				srv.b.WriteNotification(n)
+				time.Sleep(time.Millisecond * 50) // lil nap to get notifications in order
 			}
 
 			ctx := context.Background()
