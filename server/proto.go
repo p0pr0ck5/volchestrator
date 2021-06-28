@@ -42,10 +42,10 @@ func toProto(from interface{}) interface{} {
 		case "ID":
 			fieldName = ctx + "Id"
 		default:
-			fieldName = field.Name
+			fieldName = strings.Title(field.Name)
 
 			if strings.HasSuffix(field.Name, "ID") {
-				fieldName = strings.TrimSuffix(field.Name, "ID") + "Id"
+				fieldName = strings.TrimSuffix(fieldName, "ID") + "Id"
 			}
 		}
 

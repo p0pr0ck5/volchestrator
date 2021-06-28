@@ -91,14 +91,12 @@ func Test_toProto(t *testing.T) {
 			"notification",
 			args{
 				from: &notification.Notification{
-					ClientID:  "foo",
-					Message:   "bar",
-					MessageID: 1,
+					ClientID: "foo",
+					Message:  "bar",
 				},
 			},
 			&svc.Notification{
-				Message:   "bar",
-				MessageId: 1,
+				Message: "bar",
 			},
 		},
 	}

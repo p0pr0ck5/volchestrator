@@ -54,7 +54,7 @@ func (c *ChQueue) Write(n *notification.Notification) error {
 
 	c.countLock.Lock()
 	c.count++
-	n.MessageID = c.count
+	n.SetMessageID(c.count)
 	c.countLock.Unlock()
 
 	go func(n *notification.Notification) {
