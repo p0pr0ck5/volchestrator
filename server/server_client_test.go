@@ -200,7 +200,7 @@ func TestServer_WatchNotifications(t *testing.T) {
 				},
 				nil,
 			},
-			false,
+			true,
 		},
 		{
 			"invalid client",

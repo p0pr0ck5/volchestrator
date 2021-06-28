@@ -87,7 +87,7 @@ func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream s
 			default:
 			}
 			if notif == nil {
-				return nil
+				return status.Error(codes.Aborted, "channel closed")
 			}
 
 			stream.Send(&svc.WatchNotificationsResponse{

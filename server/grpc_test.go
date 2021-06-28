@@ -10,6 +10,8 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 
@@ -1801,5 +1803,69 @@ func Test_WatchNotifications_Shutdown(t *testing.T) {
 				t.Logf("%+v\n", msg)
 			}
 		})
+	}
+}
+
+func Test_WatchNotifications_Deregister(t *testing.T) {
+	mockNow := time.Now()
+
+	mockClients := []*client.Client{
+		{
+			ID:         "foo",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+		{
+			ID:         "bar",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+	}
+
+	srv, bufDialer := mockServer()
+	srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
+
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
+	}
+	defer conn.Close()
+	client := svc.NewVolchestratorClient(conn)
+
+	stream, _ := client.WatchNotifications(context.Background(), &svc.WatchNotificationsRequest{ClientId: "foo"})
+
+	srv.b.WriteNotification(&notification.Notification{
+		ClientID: "foo",
+		Message:  "bar",
+	})
+
+	got, err := stream.Recv()
+	if err != nil {
+		t.Errorf("Server.WatchNotifications() error = %v, wantErr %v", err, nil)
+	}
+	want := &svc.WatchNotificationsResponse{
+		Notification: &svc.Notification{
+			Message:   "bar",
+			MessageId: 1,
+		},
+	}
+	if !proto.Equal(got, want) {
+		t.Errorf("Server.WatchNotifications() = %v, want %v", got, want)
+	}
+
+	_, err = client.Deregister(context.Background(), &svc.DeregisterRequest{ClientId: "foo"})
+	if err != nil {
+		t.Errorf("Server.Deregister() error = %v, wantErr %v", err, nil)
+	}
+	_, err = stream.Recv()
+	e, ok := status.FromError(err)
+	if !ok {
+		t.Errorf("stream.Recv() error = %v", err)
+	}
+	switch e.Code() {
+	case codes.Aborted:
+	default:
+		t.Errorf("stream.Recv() error = %v", err)
 	}
 }
