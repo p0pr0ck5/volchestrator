@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"sort"
+
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
@@ -40,7 +42,13 @@ func (m *Memory) ReadVolume(id string) (*volume.Volume, error) {
 }
 
 func (m *Memory) ListVolumes() ([]*volume.Volume, error) {
-	return m.list("volume").([]*volume.Volume), nil
+	volumes := m.list("volume").([]*volume.Volume)
+
+	sort.Slice(volumes, func(i, j int) bool {
+		return volumes[i].ID < volumes[j].ID
+	})
+
+	return volumes, nil
 }
 
 func (m *Memory) CreateVolume(volume *volume.Volume) error {

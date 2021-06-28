@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"sort"
+
 	"github.com/p0pr0ck5/volchestrator/server/client"
 )
 
@@ -40,7 +42,13 @@ func (m *Memory) ReadClient(id string) (*client.Client, error) {
 }
 
 func (m *Memory) ListClients() ([]*client.Client, error) {
-	return m.list("client").([]*client.Client), nil
+	clients := m.list("client").([]*client.Client)
+
+	sort.Slice(clients, func(i, j int) bool {
+		return clients[i].ID < clients[j].ID
+	})
+
+	return clients, nil
 }
 
 func (m *Memory) CreateClient(client *client.Client) error {

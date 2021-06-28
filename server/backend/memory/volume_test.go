@@ -118,10 +118,10 @@ func TestMemory_ListVolumes(t *testing.T) {
 			},
 			[]*volume.Volume{
 				{
-					ID: "foo",
+					ID: "bar",
 				},
 				{
-					ID: "bar",
+					ID: "foo",
 				},
 			},
 			false,

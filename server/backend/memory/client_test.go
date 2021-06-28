@@ -131,10 +131,10 @@ func TestMemory_ListClients(t *testing.T) {
 			},
 			[]*client.Client{
 				{
-					ID: "foo",
+					ID: "bar",
 				},
 				{
-					ID: "bar",
+					ID: "foo",
 				},
 			},
 			false,
