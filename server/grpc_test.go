@@ -1796,7 +1796,7 @@ func Test_WatchNotifications_Shutdown(t *testing.T) {
 			srv.Shutdown()
 
 			msg, err := stream.Recv()
-			if (err != nil) != tt.wantErr {
+			if (err != nil) != tt.wantErr || err == io.EOF {
 				t.Errorf("Server.WatchNotifications() error = %v, wantErr %v", err, tt.wantErr)
 				t.Logf("%+v\n", msg)
 			}
