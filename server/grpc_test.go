@@ -407,24 +407,30 @@ func Test_Deregister(t *testing.T) {
 }
 
 func Test_Ping(t *testing.T) {
-	preregister := func(srv *Server, id string) {
-		srv.Register(context.Background(), &svc.RegisterRequest{ClientId: id})
+	mockNow := time.Now()
+
+	mockClients := []*client.Client{
+		{
+			ID:         "foo",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+		{
+			ID:         "bar",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
 	}
 
 	type args struct {
 		ctx context.Context
 		req *svc.PingRequest
 	}
-	type prefunc struct {
-		f   func(*Server, string)
-		arg string
-	}
 	tests := []struct {
-		name         string
-		args         []args
-		preFunctions []prefunc
-		want         []*svc.PingResponse
-		wantErr      []bool
+		name    string
+		args    []args
+		want    []*svc.PingResponse
+		wantErr []bool
 	}{
 		{
 			"one valid ping",
@@ -435,9 +441,6 @@ func Test_Ping(t *testing.T) {
 						ClientId: "foo",
 					},
 				},
-			},
-			[]prefunc{
-				{preregister, "foo"},
 			},
 			[]*svc.PingResponse{
 				{},
@@ -450,28 +453,9 @@ func Test_Ping(t *testing.T) {
 				{
 					context.Background(),
 					&svc.PingRequest{
-						ClientId: "foo",
+						ClientId: "baz",
 					},
 				},
-			},
-			[]prefunc{},
-			[]*svc.PingResponse{
-				nil,
-			},
-			[]bool{true},
-		},
-		{
-			"one invalid ping (different registration)",
-			[]args{
-				{
-					context.Background(),
-					&svc.PingRequest{
-						ClientId: "foo",
-					},
-				},
-			},
-			[]prefunc{
-				{preregister, "bar"},
 			},
 			[]*svc.PingResponse{
 				nil,
@@ -493,9 +477,6 @@ func Test_Ping(t *testing.T) {
 						ClientId: "foo",
 					},
 				},
-			},
-			[]prefunc{
-				{preregister, "foo"},
 			},
 			[]*svc.PingResponse{
 				{},
@@ -519,10 +500,6 @@ func Test_Ping(t *testing.T) {
 					},
 				},
 			},
-			[]prefunc{
-				{preregister, "foo"},
-				{preregister, "bar"},
-			},
 			[]*svc.PingResponse{
 				{},
 				{},
@@ -541,12 +518,9 @@ func Test_Ping(t *testing.T) {
 				{
 					context.Background(),
 					&svc.PingRequest{
-						ClientId: "bar",
+						ClientId: "baz",
 					},
 				},
-			},
-			[]prefunc{
-				{preregister, "foo"},
 			},
 			[]*svc.PingResponse{
 				{},
@@ -560,7 +534,7 @@ func Test_Ping(t *testing.T) {
 				{
 					context.Background(),
 					&svc.PingRequest{
-						ClientId: "foo",
+						ClientId: "baz",
 					},
 				},
 				{
@@ -569,9 +543,6 @@ func Test_Ping(t *testing.T) {
 						ClientId: "bar",
 					},
 				},
-			},
-			[]prefunc{
-				{preregister, "bar"},
 			},
 			[]*svc.PingResponse{
 				nil,
@@ -584,11 +555,7 @@ func Test_Ping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			srv, bufDialer := mockServer()
-			srv.b = backend.NewMemoryBackend()
-
-			for _, prefunc := range tt.preFunctions {
-				prefunc.f(srv, prefunc.arg)
-			}
+			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
 
 			ctx := context.Background()
 			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
