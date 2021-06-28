@@ -10,6 +10,12 @@ message RegisterRequest {
 
 message RegisterResponse {}
 
+message DeregisterRequest {
+  string client_id = 1;
+}
+
+message DeregisterResponse {}
+
 message PingRequest {
   string client_id = 1;
 }
@@ -31,6 +37,7 @@ message WatchNotificationsResponse {
 
 service Volchestrator {
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
+  rpc Deregister(DeregisterRequest) returns (DeregisterResponse) {}
   rpc Ping(PingRequest) returns (PingResponse) {}
 
   rpc WatchNotifications(WatchNotificationsRequest) returns (stream WatchNotificationsResponse) {}

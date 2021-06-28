@@ -240,6 +240,170 @@ func Test_Register(t *testing.T) {
 	}
 }
 
+func Test_Deregister(t *testing.T) {
+	mockNow := time.Now()
+
+	mockClients := []*client.Client{
+		{
+			ID:         "foo",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+		{
+			ID:         "bar",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.DeregisterRequest
+	}
+	tests := []struct {
+		name    string
+		args    []args
+		want    []*svc.DeregisterResponse
+		wantErr []bool
+	}{
+		{
+			"one valid deregistration",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "foo",
+					},
+				},
+			},
+			[]*svc.DeregisterResponse{
+				{},
+			},
+			[]bool{false},
+		},
+		{
+			"two valid deregistrations",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "foo",
+					},
+				},
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "bar",
+					},
+				},
+			},
+			[]*svc.DeregisterResponse{
+				{},
+				{},
+			},
+			[]bool{false, false},
+		},
+		{
+			"one valid deregistration (no registration)",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "baz",
+					},
+				},
+			},
+			[]*svc.DeregisterResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one valid deregistration (empty request)",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeregisterRequest{},
+				},
+			},
+			[]*svc.DeregisterResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one valid and one invalid registration",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "foo",
+					},
+				},
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "baz",
+					},
+				},
+			},
+			[]*svc.DeregisterResponse{
+				{},
+				nil,
+			},
+			[]bool{false, true},
+		},
+		{
+			"one invalid and one valid registration",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "baz",
+					},
+				},
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "foo",
+					},
+				},
+			},
+			[]*svc.DeregisterResponse{
+				nil,
+				{},
+			},
+			[]bool{true, false},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
+			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorClient(conn)
+
+			for i, req := range tt.args {
+				got, err := client.Deregister(req.ctx, req.req)
+				if (err != nil) != tt.wantErr[i] {
+					t.Errorf("Server.Deregister() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !proto.Equal(got, tt.want[i]) {
+					t.Errorf("Server.Deregister() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}
+
 func Test_Ping(t *testing.T) {
 	preregister := func(srv *Server, id string) {
 		srv.Register(context.Background(), &svc.RegisterRequest{ClientId: id})

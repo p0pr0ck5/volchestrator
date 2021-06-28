@@ -18,6 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type VolchestratorClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
+	Deregister(ctx context.Context, in *DeregisterRequest, opts ...grpc.CallOption) (*DeregisterResponse, error)
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	WatchNotifications(ctx context.Context, in *WatchNotificationsRequest, opts ...grpc.CallOption) (Volchestrator_WatchNotificationsClient, error)
 }
@@ -33,6 +34,15 @@ func NewVolchestratorClient(cc grpc.ClientConnInterface) VolchestratorClient {
 func (c *volchestratorClient) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
 	out := new(RegisterResponse)
 	err := c.cc.Invoke(ctx, "/volchestrator.Volchestrator/Register", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *volchestratorClient) Deregister(ctx context.Context, in *DeregisterRequest, opts ...grpc.CallOption) (*DeregisterResponse, error) {
+	out := new(DeregisterResponse)
+	err := c.cc.Invoke(ctx, "/volchestrator.Volchestrator/Deregister", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +95,7 @@ func (x *volchestratorWatchNotificationsClient) Recv() (*WatchNotificationsRespo
 // for forward compatibility
 type VolchestratorServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
+	Deregister(context.Context, *DeregisterRequest) (*DeregisterResponse, error)
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	WatchNotifications(*WatchNotificationsRequest, Volchestrator_WatchNotificationsServer) error
 	mustEmbedUnimplementedVolchestratorServer()
@@ -96,6 +107,9 @@ type UnimplementedVolchestratorServer struct {
 
 func (UnimplementedVolchestratorServer) Register(context.Context, *RegisterRequest) (*RegisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedVolchestratorServer) Deregister(context.Context, *DeregisterRequest) (*DeregisterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Deregister not implemented")
 }
 func (UnimplementedVolchestratorServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
@@ -130,6 +144,24 @@ func _Volchestrator_Register_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(VolchestratorServer).Register(ctx, req.(*RegisterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Volchestrator_Deregister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeregisterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorServer).Deregister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.Volchestrator/Deregister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorServer).Deregister(ctx, req.(*DeregisterRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -183,6 +215,10 @@ var Volchestrator_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Register",
 			Handler:    _Volchestrator_Register_Handler,
+		},
+		{
+			MethodName: "Deregister",
+			Handler:    _Volchestrator_Deregister_Handler,
 		},
 		{
 			MethodName: "Ping",

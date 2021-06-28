@@ -66,6 +66,64 @@ func TestServer_Register(t *testing.T) {
 	}
 }
 
+func TestServer_Deregister(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req *svc.DeregisterRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *svc.DeregisterResponse
+		wantErr bool
+	}{
+		{
+			"valid register",
+			args{
+				context.Background(),
+				&svc.DeregisterRequest{
+					ClientId: "foo",
+				},
+			},
+			&svc.DeregisterResponse{},
+			false,
+		},
+		{
+			"invalid register - missing client id in request",
+			args{
+				context.Background(),
+				&svc.DeregisterRequest{},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid register - bad client id in request",
+			args{
+				context.Background(),
+				&svc.DeregisterRequest{
+					ClientId: "bad",
+				},
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, _ := NewServer(WithMockBackend())
+			got, err := s.Deregister(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Server.Deregister() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Server.Deregister() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestServer_Ping(t *testing.T) {
 	type args struct {
 		ctx context.Context

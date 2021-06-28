@@ -29,6 +29,22 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterRequest) (*svc.R
 	return &svc.RegisterResponse{}, nil
 }
 
+func (s *Server) Deregister(ctx context.Context, req *svc.DeregisterRequest) (*svc.DeregisterResponse, error) {
+	if req.ClientId == "" {
+		return nil, errors.New("empty client id")
+	}
+
+	client := &client.Client{
+		ID: req.ClientId,
+	}
+
+	if err := s.b.DeleteClient(client); err != nil {
+		return nil, errors.Wrap(err, "delete failed")
+	}
+
+	return &svc.DeregisterResponse{}, nil
+}
+
 func (s *Server) Ping(ctx context.Context, req *svc.PingRequest) (*svc.PingResponse, error) {
 	if req.ClientId == "" {
 		return nil, errors.New("empty client id")
