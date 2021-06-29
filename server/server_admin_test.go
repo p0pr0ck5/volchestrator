@@ -374,34 +374,6 @@ func TestServer_UpdateVolume(t *testing.T) {
 			nil,
 			true,
 		},
-		{
-			"invalid volume - missing region in request",
-			args{
-				context.Background(),
-				&svc.UpdateVolumeRequest{
-					Volume: &svc.Volume{
-						VolumeId: "foo",
-						Tag:      "bar",
-					},
-				},
-			},
-			nil,
-			true,
-		},
-		{
-			"invalid volume - missing tag in request",
-			args{
-				context.Background(),
-				&svc.UpdateVolumeRequest{
-					Volume: &svc.Volume{
-						VolumeId: "foo",
-						Region:   "us-west-2",
-					},
-				},
-			},
-			nil,
-			true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

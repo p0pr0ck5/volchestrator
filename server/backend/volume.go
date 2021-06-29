@@ -4,8 +4,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/p0pr0ck5/volchestrator/server/volume"
+	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
+
+	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
 func (b *Backend) ReadVolume(id string) (*volume.Volume, error) {
@@ -47,6 +49,10 @@ func (b *Backend) UpdateVolume(v *volume.Volume) error {
 	currentVolume, err := b.ReadVolume(v.ID)
 	if err != nil {
 		return errors.Wrap(err, "get current volume")
+	}
+
+	if err := mergo.Merge(v, currentVolume); err != nil {
+		return errors.Wrap(err, "merge volume")
 	}
 
 	if err := v.Validate(); err != nil {

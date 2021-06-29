@@ -1187,6 +1187,24 @@ func Test_UpdateVolume(t *testing.T) {
 			[]bool{false},
 		},
 		{
+			"partial update",
+			[]args{
+				{
+					context.Background(),
+					&svc.UpdateVolumeRequest{
+						Volume: &svc.Volume{
+							VolumeId: "foo",
+							Tag:      "baz",
+						},
+					},
+				},
+			},
+			[]*svc.UpdateVolumeResponse{
+				{},
+			},
+			[]bool{false},
+		},
+		{
 			"nonexistent volume",
 			[]args{
 				{
