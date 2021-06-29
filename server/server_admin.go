@@ -60,6 +60,21 @@ func (s *Server) GetVolume(ctx context.Context, req *svc.GetVolumeRequest) (*svc
 	return res, nil
 }
 
+func (s *Server) ListVolumes(ctx context.Context, req *svc.ListVolumesRequest) (*svc.ListVolumesReponse, error) {
+	volumes, err := s.b.ListVolumes()
+	if err != nil {
+		return nil, err
+	}
+
+	res := &svc.ListVolumesReponse{}
+
+	for _, volume := range volumes {
+		res.Volumes = append(res.Volumes, toProto(volume).(*svc.Volume))
+	}
+
+	return res, nil
+}
+
 func (s *Server) AddVolume(ctx context.Context, req *svc.AddVolumeRequest) (*svc.AddVolumeResponse, error) {
 	v := toStruct(req.Volume).(*volume.Volume)
 

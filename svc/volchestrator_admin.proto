@@ -48,6 +48,12 @@ message GetVolumeResponse {
   Volume volume = 1;
 }
 
+message ListVolumesRequest {}
+
+message ListVolumesReponse {
+  repeated Volume volumes = 1;
+}
+
 message AddVolumeRequest {
   Volume volume = 1;
 }
@@ -71,6 +77,7 @@ service VolchestratorAdmin {
   rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {}
 
   rpc GetVolume(GetVolumeRequest) returns (GetVolumeResponse) {}
+  rpc ListVolumes(ListVolumesRequest) returns (ListVolumesReponse) {}
   rpc AddVolume(AddVolumeRequest) returns (AddVolumeResponse) {}
   rpc UpdateVolume(UpdateVolumeRequest) returns (UpdateVolumeResponse) {}
   rpc DeleteVolume(DeleteVolumeRequest) returns (DeleteVolumeResponse) {}

@@ -914,6 +914,89 @@ func Test_GetVolume(t *testing.T) {
 	}
 }
 
+func Test_ListVolumes(t *testing.T) {
+	mockVolumes := []*volume.Volume{
+		{
+			ID:     "foo",
+			Region: "us-west-2",
+			Tag:    "bar",
+			Status: volume.Available,
+		},
+		{
+			ID:     "bar",
+			Region: "us-west-1",
+			Tag:    "baz",
+			Status: volume.Unavailable,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.ListVolumesRequest
+	}
+	tests := []struct {
+		name    string
+		args    []args
+		want    []*svc.ListVolumesReponse
+		wantErr []bool
+	}{
+		{
+			"list volumes",
+			[]args{
+				{
+					context.Background(),
+					&svc.ListVolumesRequest{},
+				},
+			},
+			[]*svc.ListVolumesReponse{
+				{
+					Volumes: []*svc.Volume{
+						{
+							VolumeId: "bar",
+							Region:   "us-west-1",
+							Tag:      "baz",
+							Status:   svc.Volume_Status(volume.Unavailable),
+						},
+						{
+							VolumeId: "foo",
+							Region:   "us-west-2",
+							Tag:      "bar",
+							Status:   svc.Volume_Status(volume.Available),
+						},
+					},
+				},
+			},
+			[]bool{false},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
+			srv.b = backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorAdminClient(conn)
+
+			for i, req := range tt.args {
+				got, err := client.ListVolumes(req.ctx, req.req)
+				if (err != nil) != tt.wantErr[i] {
+					t.Errorf("Server.ListVolumes() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !proto.Equal(got, tt.want[i]) {
+					t.Errorf("Server.ListVolumes() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}
+
 func Test_AddVolume(t *testing.T) {
 	mockVolumes := []*volume.Volume{
 		{

@@ -20,6 +20,7 @@ type VolchestratorAdminClient interface {
 	GetClient(ctx context.Context, in *GetClientRequest, opts ...grpc.CallOption) (*GetClientResponse, error)
 	ListClients(ctx context.Context, in *ListClientsRequest, opts ...grpc.CallOption) (*ListClientsResponse, error)
 	GetVolume(ctx context.Context, in *GetVolumeRequest, opts ...grpc.CallOption) (*GetVolumeResponse, error)
+	ListVolumes(ctx context.Context, in *ListVolumesRequest, opts ...grpc.CallOption) (*ListVolumesReponse, error)
 	AddVolume(ctx context.Context, in *AddVolumeRequest, opts ...grpc.CallOption) (*AddVolumeResponse, error)
 	UpdateVolume(ctx context.Context, in *UpdateVolumeRequest, opts ...grpc.CallOption) (*UpdateVolumeResponse, error)
 	DeleteVolume(ctx context.Context, in *DeleteVolumeRequest, opts ...grpc.CallOption) (*DeleteVolumeResponse, error)
@@ -60,6 +61,15 @@ func (c *volchestratorAdminClient) GetVolume(ctx context.Context, in *GetVolumeR
 	return out, nil
 }
 
+func (c *volchestratorAdminClient) ListVolumes(ctx context.Context, in *ListVolumesRequest, opts ...grpc.CallOption) (*ListVolumesReponse, error) {
+	out := new(ListVolumesReponse)
+	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/ListVolumes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *volchestratorAdminClient) AddVolume(ctx context.Context, in *AddVolumeRequest, opts ...grpc.CallOption) (*AddVolumeResponse, error) {
 	out := new(AddVolumeResponse)
 	err := c.cc.Invoke(ctx, "/volchestrator.VolchestratorAdmin/AddVolume", in, out, opts...)
@@ -94,6 +104,7 @@ type VolchestratorAdminServer interface {
 	GetClient(context.Context, *GetClientRequest) (*GetClientResponse, error)
 	ListClients(context.Context, *ListClientsRequest) (*ListClientsResponse, error)
 	GetVolume(context.Context, *GetVolumeRequest) (*GetVolumeResponse, error)
+	ListVolumes(context.Context, *ListVolumesRequest) (*ListVolumesReponse, error)
 	AddVolume(context.Context, *AddVolumeRequest) (*AddVolumeResponse, error)
 	UpdateVolume(context.Context, *UpdateVolumeRequest) (*UpdateVolumeResponse, error)
 	DeleteVolume(context.Context, *DeleteVolumeRequest) (*DeleteVolumeResponse, error)
@@ -112,6 +123,9 @@ func (UnimplementedVolchestratorAdminServer) ListClients(context.Context, *ListC
 }
 func (UnimplementedVolchestratorAdminServer) GetVolume(context.Context, *GetVolumeRequest) (*GetVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVolume not implemented")
+}
+func (UnimplementedVolchestratorAdminServer) ListVolumes(context.Context, *ListVolumesRequest) (*ListVolumesReponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListVolumes not implemented")
 }
 func (UnimplementedVolchestratorAdminServer) AddVolume(context.Context, *AddVolumeRequest) (*AddVolumeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddVolume not implemented")
@@ -189,6 +203,24 @@ func _VolchestratorAdmin_GetVolume_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VolchestratorAdmin_ListVolumes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListVolumesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorAdminServer).ListVolumes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.VolchestratorAdmin/ListVolumes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorAdminServer).ListVolumes(ctx, req.(*ListVolumesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VolchestratorAdmin_AddVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddVolumeRequest)
 	if err := dec(in); err != nil {
@@ -261,6 +293,10 @@ var VolchestratorAdmin_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVolume",
 			Handler:    _VolchestratorAdmin_GetVolume_Handler,
+		},
+		{
+			MethodName: "ListVolumes",
+			Handler:    _VolchestratorAdmin_ListVolumes_Handler,
 		},
 		{
 			MethodName: "AddVolume",
