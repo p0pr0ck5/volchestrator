@@ -306,7 +306,7 @@ func Test_Deregister(t *testing.T) {
 			[]bool{false, false},
 		},
 		{
-			"one valid deregistration (no registration)",
+			"one invalid deregistration (no registration)",
 			[]args{
 				{
 					context.Background(),
@@ -321,7 +321,7 @@ func Test_Deregister(t *testing.T) {
 			[]bool{true},
 		},
 		{
-			"one valid deregistration (empty request)",
+			"one invalid deregistration (empty request)",
 			[]args{
 				{
 					context.Background(),
