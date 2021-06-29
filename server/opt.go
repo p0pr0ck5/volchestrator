@@ -8,17 +8,17 @@ import (
 
 type ServerOpt func(*Server) error
 
-func WithNewMemoryBackend() ServerOpt {
+func WithBackend(b *backend.Backend) ServerOpt {
 	return func(s *Server) error {
-		s.b = backend.NewMemoryBackend()
+		s.b = b
 
 		return nil
 	}
 }
 
-func WithBackend(b *backend.Backend) ServerOpt {
+func WithNewMemoryBackend() ServerOpt {
 	return func(s *Server) error {
-		s.b = b
+		s.b = backend.NewMemoryBackend()
 
 		return nil
 	}
