@@ -109,11 +109,13 @@ func TestServer_PruneClients(t *testing.T) {
 	mockClients := []*client.Client{
 		{
 			ID:         "foo",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
 		{
 			ID:         "bar",
+			Token:      "mock",
 			Registered: mockThen,
 			LastSeen:   mockThen,
 		},

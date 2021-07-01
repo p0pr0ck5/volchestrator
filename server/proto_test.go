@@ -33,6 +33,7 @@ func Test_toProto(t *testing.T) {
 			args{
 				from: &client.Client{
 					ID:         "foo",
+					Token:      "bar",
 					Registered: mockRegistered,
 					LastSeen:   mockLastSeen,
 				},

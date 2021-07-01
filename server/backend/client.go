@@ -43,6 +43,10 @@ func (b *Backend) ListClients() ([]*client.Client, error) {
 }
 
 func (b *Backend) CreateClient(c *client.Client) error {
+	if err := c.Validate(); err != nil {
+		return errors.Wrap(err, "client validation")
+	}
+
 	now := time.Now()
 	c.CreatedAt = now
 	c.UpdatedAt = now
@@ -58,6 +62,10 @@ func (b *Backend) UpdateClient(c *client.Client) error {
 
 	if err := mergo.Merge(c, currentClient, mergo.WithTransformers(timeTransformer{})); err != nil {
 		return errors.Wrap(err, "merge client")
+	}
+
+	if err := c.Validate(); err != nil {
+		return errors.Wrap(err, "client validation")
 	}
 
 	c.UpdatedAt = time.Now()

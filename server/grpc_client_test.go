@@ -39,7 +39,10 @@ func Test_Register(t *testing.T) {
 				},
 			},
 			[]*svc.RegisterResponse{
-				{},
+				{
+					ClientId: "foo",
+					Token:    "mock",
+				},
 			},
 			[]bool{false},
 		},
@@ -73,8 +76,14 @@ func Test_Register(t *testing.T) {
 				},
 			},
 			[]*svc.RegisterResponse{
-				{},
-				{},
+				{
+					ClientId: "foo",
+					Token:    "mock",
+				},
+				{
+					ClientId: "bar",
+					Token:    "mock",
+				},
 			},
 			[]bool{false, false},
 		},
@@ -95,7 +104,10 @@ func Test_Register(t *testing.T) {
 				},
 			},
 			[]*svc.RegisterResponse{
-				{},
+				{
+					ClientId: "foo",
+					Token:    "mock",
+				},
 				nil,
 			},
 			[]bool{false, true},
@@ -123,8 +135,14 @@ func Test_Register(t *testing.T) {
 				},
 			},
 			[]*svc.RegisterResponse{
-				{},
-				{},
+				{
+					ClientId: "foo",
+					Token:    "mock",
+				},
+				{
+					ClientId: "bar",
+					Token:    "mock",
+				},
 				nil,
 			},
 			[]bool{false, false, true},
@@ -152,8 +170,14 @@ func Test_Register(t *testing.T) {
 				},
 			},
 			[]*svc.RegisterResponse{
-				{},
-				{},
+				{
+					ClientId: "bar",
+					Token:    "mock",
+				},
+				{
+					ClientId: "foo",
+					Token:    "mock",
+				},
 				nil,
 			},
 			[]bool{false, false, true},
@@ -181,9 +205,15 @@ func Test_Register(t *testing.T) {
 				},
 			},
 			[]*svc.RegisterResponse{
-				{},
+				{
+					ClientId: "foo",
+					Token:    "mock",
+				},
 				nil,
-				{},
+				{
+					ClientId: "bar",
+					Token:    "mock",
+				},
 			},
 			[]bool{false, true, false},
 		},
@@ -222,11 +252,13 @@ func Test_Deregister(t *testing.T) {
 	mockClients := []*client.Client{
 		{
 			ID:         "foo",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
 		{
 			ID:         "bar",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
@@ -249,6 +281,7 @@ func Test_Deregister(t *testing.T) {
 					context.Background(),
 					&svc.DeregisterRequest{
 						ClientId: "foo",
+						Token:    "mock",
 					},
 				},
 			},
@@ -264,12 +297,14 @@ func Test_Deregister(t *testing.T) {
 					context.Background(),
 					&svc.DeregisterRequest{
 						ClientId: "foo",
+						Token:    "mock",
 					},
 				},
 				{
 					context.Background(),
 					&svc.DeregisterRequest{
 						ClientId: "bar",
+						Token:    "mock",
 					},
 				},
 			},
@@ -308,7 +343,23 @@ func Test_Deregister(t *testing.T) {
 			[]bool{true},
 		},
 		{
-			"one valid and one invalid registration",
+			"one invalid deregistration (invalid token)",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "foo",
+						Token:    "nope",
+					},
+				},
+			},
+			[]*svc.DeregisterResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one invalid deregistration (empty token)",
 			[]args{
 				{
 					context.Background(),
@@ -316,10 +367,27 @@ func Test_Deregister(t *testing.T) {
 						ClientId: "foo",
 					},
 				},
+			},
+			[]*svc.DeregisterResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one valid and one invalid registration",
+			[]args{
+				{
+					context.Background(),
+					&svc.DeregisterRequest{
+						ClientId: "foo",
+						Token:    "mock",
+					},
+				},
 				{
 					context.Background(),
 					&svc.DeregisterRequest{
 						ClientId: "baz",
+						Token:    "mock",
 					},
 				},
 			},
@@ -336,12 +404,14 @@ func Test_Deregister(t *testing.T) {
 					context.Background(),
 					&svc.DeregisterRequest{
 						ClientId: "baz",
+						Token:    "mock",
 					},
 				},
 				{
 					context.Background(),
 					&svc.DeregisterRequest{
 						ClientId: "foo",
+						Token:    "mock",
 					},
 				},
 			},
@@ -386,11 +456,13 @@ func Test_Ping(t *testing.T) {
 	mockClients := []*client.Client{
 		{
 			ID:         "foo",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
 		{
 			ID:         "bar",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
@@ -413,6 +485,7 @@ func Test_Ping(t *testing.T) {
 					context.Background(),
 					&svc.PingRequest{
 						ClientId: "foo",
+						Token:    "mock",
 					},
 				},
 			},
@@ -437,7 +510,23 @@ func Test_Ping(t *testing.T) {
 			[]bool{true},
 		},
 		{
-			"two valid pings (same client)",
+			"one invalid ping (invalid token)",
+			[]args{
+				{
+					context.Background(),
+					&svc.PingRequest{
+						ClientId: "foo",
+						Token:    "nope",
+					},
+				},
+			},
+			[]*svc.PingResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one invalid ping (no token)",
 			[]args{
 				{
 					context.Background(),
@@ -445,10 +534,27 @@ func Test_Ping(t *testing.T) {
 						ClientId: "foo",
 					},
 				},
+			},
+			[]*svc.PingResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"two valid pings (same client)",
+			[]args{
 				{
 					context.Background(),
 					&svc.PingRequest{
 						ClientId: "foo",
+						Token:    "mock",
+					},
+				},
+				{
+					context.Background(),
+					&svc.PingRequest{
+						ClientId: "foo",
+						Token:    "mock",
 					},
 				},
 			},
@@ -465,12 +571,14 @@ func Test_Ping(t *testing.T) {
 					context.Background(),
 					&svc.PingRequest{
 						ClientId: "foo",
+						Token:    "mock",
 					},
 				},
 				{
 					context.Background(),
 					&svc.PingRequest{
 						ClientId: "bar",
+						Token:    "mock",
 					},
 				},
 			},
@@ -487,12 +595,14 @@ func Test_Ping(t *testing.T) {
 					context.Background(),
 					&svc.PingRequest{
 						ClientId: "foo",
+						Token:    "mock",
 					},
 				},
 				{
 					context.Background(),
 					&svc.PingRequest{
 						ClientId: "baz",
+						Token:    "mock",
 					},
 				},
 			},
@@ -509,12 +619,14 @@ func Test_Ping(t *testing.T) {
 					context.Background(),
 					&svc.PingRequest{
 						ClientId: "baz",
+						Token:    "mock",
 					},
 				},
 				{
 					context.Background(),
 					&svc.PingRequest{
 						ClientId: "bar",
+						Token:    "mock",
 					},
 				},
 			},
@@ -559,11 +671,13 @@ func Test_WatchNotifications(t *testing.T) {
 	mockClients := []*client.Client{
 		{
 			ID:         "foo",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
 		{
 			ID:         "bar",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
@@ -586,6 +700,7 @@ func Test_WatchNotifications(t *testing.T) {
 				context.Background(),
 				&svc.WatchNotificationsRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			[]*notification.Notification{
@@ -610,6 +725,7 @@ func Test_WatchNotifications(t *testing.T) {
 				context.Background(),
 				&svc.WatchNotificationsRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			[]*notification.Notification{
@@ -638,6 +754,7 @@ func Test_WatchNotifications(t *testing.T) {
 				context.Background(),
 				&svc.WatchNotificationsRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			[]*notification.Notification{
@@ -672,6 +789,7 @@ func Test_WatchNotifications(t *testing.T) {
 				context.Background(),
 				&svc.WatchNotificationsRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			[]*notification.Notification{
@@ -714,6 +832,7 @@ func Test_WatchNotifications(t *testing.T) {
 				context.Background(),
 				&svc.WatchNotificationsRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			[]*notification.Notification{
@@ -774,6 +893,19 @@ func Test_WatchNotifications(t *testing.T) {
 				context.Background(),
 				&svc.WatchNotificationsRequest{
 					ClientId: "",
+				},
+			},
+			nil,
+			nil,
+			true,
+		},
+		{
+			"bad token",
+			args{
+				context.Background(),
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+					Token:    "nope",
 				},
 			},
 			nil,
@@ -841,11 +973,13 @@ func Test_WatchNotifications_Shutdown(t *testing.T) {
 	mockClients := []*client.Client{
 		{
 			ID:         "foo",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
 		{
 			ID:         "bar",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
@@ -867,6 +1001,7 @@ func Test_WatchNotifications_Shutdown(t *testing.T) {
 				context.Background(),
 				&svc.WatchNotificationsRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			[]*notification.Notification{
@@ -883,6 +1018,7 @@ func Test_WatchNotifications_Shutdown(t *testing.T) {
 				context.Background(),
 				&svc.WatchNotificationsRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			[]*notification.Notification{
@@ -903,6 +1039,7 @@ func Test_WatchNotifications_Shutdown(t *testing.T) {
 				context.Background(),
 				&svc.WatchNotificationsRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			nil,
@@ -945,11 +1082,13 @@ func Test_WatchNotifications_Deregister(t *testing.T) {
 	mockClients := []*client.Client{
 		{
 			ID:         "foo",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
 		{
 			ID:         "bar",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
@@ -966,7 +1105,11 @@ func Test_WatchNotifications_Deregister(t *testing.T) {
 	defer conn.Close()
 	client := svc.NewVolchestratorClient(conn)
 
-	stream, _ := client.WatchNotifications(context.Background(), &svc.WatchNotificationsRequest{ClientId: "foo"})
+	watch := &svc.WatchNotificationsRequest{
+		ClientId: "foo",
+		Token:    "mock",
+	}
+	stream, _ := client.WatchNotifications(context.Background(), watch)
 
 	srv.b.WriteNotification(&notification.Notification{
 		ClientID: "foo",
@@ -987,7 +1130,11 @@ func Test_WatchNotifications_Deregister(t *testing.T) {
 		t.Errorf("Server.WatchNotifications() = %v, want %v", got, want)
 	}
 
-	_, err = client.Deregister(context.Background(), &svc.DeregisterRequest{ClientId: "foo"})
+	dereg := &svc.DeregisterRequest{
+		ClientId: "foo",
+		Token:    "mock",
+	}
+	_, err = client.Deregister(context.Background(), dereg)
 	if err != nil {
 		t.Errorf("Server.Deregister() error = %v, wantErr %v", err, nil)
 	}

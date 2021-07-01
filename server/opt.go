@@ -47,3 +47,11 @@ func WithConfig(c *config.Config) ServerOpt {
 		return nil
 	}
 }
+
+func WithTokener(t Tokener) ServerOpt {
+	return func(s *Server) error {
+		s.t = t
+
+		return nil
+	}
+}

@@ -15,10 +15,16 @@ const bufSize = 1024 * 1024
 
 type bufDialFunc func(context.Context, string) (net.Conn, error)
 
+type mockTokener struct{}
+
+func (m mockTokener) Generate() string {
+	return "mock"
+}
+
 func mockServer() (*Server, bufDialFunc) {
 	lis := bufconn.Listen(bufSize)
 	s := grpc.NewServer()
-	srv, _ := NewServer(WithNewMemoryBackend())
+	srv, _ := NewServer(WithNewMemoryBackend(), WithTokener(mockTokener{}))
 	svc.RegisterVolchestratorServer(s, srv)
 	svc.RegisterVolchestratorAdminServer(s, srv)
 	go func() {

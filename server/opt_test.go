@@ -62,7 +62,11 @@ func TestWithMemoryBackend(t *testing.T) {
 				return
 			}
 
-			s1.b.CreateClient(&client.Client{ID: "foo"})
+			c := &client.Client{
+				ID:    "foo",
+				Token: "mock",
+			}
+			s1.b.CreateClient(c)
 
 			l1, _ := s1.b.ListClients()
 			l2, _ := s2.b.ListClients()

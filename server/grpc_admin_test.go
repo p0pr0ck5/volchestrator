@@ -22,11 +22,13 @@ func Test_GetClient(t *testing.T) {
 	mockClients := []*client.Client{
 		{
 			ID:         "foo",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
 		{
 			ID:         "bar",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
@@ -148,11 +150,13 @@ func Test_ListClients(t *testing.T) {
 	mockClients := []*client.Client{
 		{
 			ID:         "foo",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},
 		{
 			ID:         "bar",
+			Token:      "mock",
 			Registered: mockNow,
 			LastSeen:   mockNow,
 		},

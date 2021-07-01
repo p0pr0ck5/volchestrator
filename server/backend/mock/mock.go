@@ -30,6 +30,7 @@ func (m *MockBackend) ReadClient(id string) (*client.Client, error) {
 
 	c := &client.Client{
 		ID:         id,
+		Token:      "mock",
 		Registered: nowIsh(),
 		LastSeen:   nowIsh(),
 	}

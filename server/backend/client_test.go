@@ -15,11 +15,13 @@ func TestBackend_UpdateClient(t *testing.T) {
 	mockClients := []*client.Client{
 		{
 			ID:         "foo",
+			Token:      "mock",
 			Registered: mockThen,
 			LastSeen:   mockThen,
 		},
 		{
 			ID:         "bar",
+			Token:      "mock",
 			Registered: mockThen,
 			LastSeen:   mockThen,
 		},
@@ -52,6 +54,7 @@ func TestBackend_UpdateClient(t *testing.T) {
 			},
 			&client.Client{
 				ID:         "foo",
+				Token:      "mock",
 				Registered: mockNow,
 				LastSeen:   mockNow,
 			},
@@ -70,6 +73,7 @@ func TestBackend_UpdateClient(t *testing.T) {
 			},
 			&client.Client{
 				ID:         "foo",
+				Token:      "mock",
 				Registered: mockThen,
 				LastSeen:   mockNow,
 			},

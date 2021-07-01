@@ -8,22 +8,28 @@ message RegisterRequest {
   string client_id = 1;
 }
 
-message RegisterResponse {}
+message RegisterResponse {
+  string client_id = 1;
+  string token = 2;
+}
 
 message DeregisterRequest {
   string client_id = 1;
+  string token = 2;
 }
 
 message DeregisterResponse {}
 
 message PingRequest {
   string client_id = 1;
+  string token = 2;
 }
 
 message PingResponse {}
 
 message WatchNotificationsRequest {
   string client_id = 1;
+  string token = 2;
 }
 
 message Notification {

@@ -35,6 +35,11 @@ func toProto(from interface{}) interface{} {
 
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Type().Field(i)
+
+		if field.Tag.Get("proto") == "ignore" {
+			continue
+		}
+
 		var fieldName string
 
 		// if this is the ID, its a special case

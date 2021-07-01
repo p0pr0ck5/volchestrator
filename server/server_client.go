@@ -19,6 +19,7 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterRequest) (*svc.R
 
 	client := &client.Client{
 		ID:         req.ClientId,
+		Token:      s.t.Generate(),
 		Registered: time.Now(),
 	}
 
@@ -26,7 +27,12 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterRequest) (*svc.R
 		return nil, errors.Wrap(err, "create failed")
 	}
 
-	return &svc.RegisterResponse{}, nil
+	res := &svc.RegisterResponse{
+		ClientId: client.ID,
+		Token:    client.Token,
+	}
+
+	return res, nil
 }
 
 func (s *Server) Deregister(ctx context.Context, req *svc.DeregisterRequest) (*svc.DeregisterResponse, error) {
@@ -34,8 +40,13 @@ func (s *Server) Deregister(ctx context.Context, req *svc.DeregisterRequest) (*s
 		return nil, errors.New("empty client id")
 	}
 
-	client := &client.Client{
-		ID: req.ClientId,
+	client, err := s.b.ReadClient(req.ClientId)
+	if err != nil {
+		return nil, errors.Wrap(err, "get client")
+	}
+
+	if client.Token != req.Token {
+		return nil, errors.New("invalid token")
 	}
 
 	if err := s.b.DeleteClient(client); err != nil {
@@ -50,9 +61,13 @@ func (s *Server) Ping(ctx context.Context, req *svc.PingRequest) (*svc.PingRespo
 		return nil, errors.New("empty client id")
 	}
 
-	client := &client.Client{
-		ID:       req.ClientId,
-		LastSeen: time.Now(),
+	client, err := s.b.ReadClient(req.ClientId)
+	if err != nil {
+		return nil, errors.Wrap(err, "get client")
+	}
+
+	if client.Token != req.Token {
+		return nil, errors.New("invalid token")
 	}
 
 	if err := s.b.UpdateClient(client); err != nil {
@@ -65,6 +80,15 @@ func (s *Server) Ping(ctx context.Context, req *svc.PingRequest) (*svc.PingRespo
 func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream svc.Volchestrator_WatchNotificationsServer) error {
 	if req.ClientId == "" {
 		return errors.New("empty client id")
+	}
+
+	client, err := s.b.ReadClient(req.ClientId)
+	if err != nil {
+		return errors.Wrap(err, "get client")
+	}
+
+	if client.Token != req.Token {
+		return errors.New("invalid token")
 	}
 
 	ch, err := s.b.GetNotifications(req.ClientId)

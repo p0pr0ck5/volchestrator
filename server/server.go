@@ -19,12 +19,15 @@ type Server struct {
 
 	config *config.Config
 
+	t Tokener
+
 	shutdownCh chan struct{}
 }
 
 func NewServer(opts ...ServerOpt) (*Server, error) {
 	s := &Server{
 		config:     config.DefaultConfig(),
+		t:          RandTokener{},
 		shutdownCh: make(chan struct{}),
 	}
 

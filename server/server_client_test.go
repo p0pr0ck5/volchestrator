@@ -27,7 +27,10 @@ func TestServer_Register(t *testing.T) {
 					ClientId: "foo",
 				},
 			},
-			&svc.RegisterResponse{},
+			&svc.RegisterResponse{
+				ClientId: "foo",
+				Token:    "mock",
+			},
 			false,
 		},
 		{
@@ -53,7 +56,7 @@ func TestServer_Register(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, _ := NewServer(WithMockBackend())
+			s, _ := NewServer(WithMockBackend(), WithTokener(mockTokener{}))
 			got, err := s.Register(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Server.Register() error = %v, wantErr %v", err, tt.wantErr)
@@ -78,18 +81,19 @@ func TestServer_Deregister(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"valid register",
+			"valid deregister",
 			args{
 				context.Background(),
 				&svc.DeregisterRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			&svc.DeregisterResponse{},
 			false,
 		},
 		{
-			"invalid register - missing client id in request",
+			"invalid deregister - missing client id in request",
 			args{
 				context.Background(),
 				&svc.DeregisterRequest{},
@@ -98,11 +102,34 @@ func TestServer_Deregister(t *testing.T) {
 			true,
 		},
 		{
-			"invalid register - bad client id in request",
+			"invalid deregister - bad client id in request",
 			args{
 				context.Background(),
 				&svc.DeregisterRequest{
 					ClientId: "bad",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid deregister - bad token in request",
+			args{
+				context.Background(),
+				&svc.DeregisterRequest{
+					ClientId: "foo",
+					Token:    "nope",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid deregister - missing token in request",
+			args{
+				context.Background(),
+				&svc.DeregisterRequest{
+					ClientId: "foo",
 				},
 			},
 			nil,
@@ -141,6 +168,7 @@ func TestServer_Ping(t *testing.T) {
 				context.Background(),
 				&svc.PingRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 			},
 			&svc.PingResponse{},
@@ -161,6 +189,29 @@ func TestServer_Ping(t *testing.T) {
 				context.Background(),
 				&svc.PingRequest{
 					ClientId: "bad",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid ping - bad token in request",
+			args{
+				context.Background(),
+				&svc.PingRequest{
+					ClientId: "foo",
+					Token:    "nope",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid ping - missing token in request",
+			args{
+				context.Background(),
+				&svc.PingRequest{
+					ClientId: "foo",
 				},
 			},
 			nil,
@@ -197,6 +248,7 @@ func TestServer_WatchNotifications(t *testing.T) {
 			args{
 				&svc.WatchNotificationsRequest{
 					ClientId: "foo",
+					Token:    "mock",
 				},
 				nil,
 			},
@@ -207,6 +259,18 @@ func TestServer_WatchNotifications(t *testing.T) {
 			args{
 				&svc.WatchNotificationsRequest{
 					ClientId: "bad",
+					Token:    "mock",
+				},
+				nil,
+			},
+			true,
+		},
+		{
+			"invalid token",
+			args{
+				&svc.WatchNotificationsRequest{
+					ClientId: "foo",
+					Token:    "nope",
 				},
 				nil,
 			},
