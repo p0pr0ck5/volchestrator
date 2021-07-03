@@ -4,7 +4,6 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/pkg/errors"
 
 	"github.com/p0pr0ck5/volchestrator/server/backend"
 	"github.com/p0pr0ck5/volchestrator/server/config"
@@ -31,13 +30,15 @@ func NewServer(opts ...ServerOpt) (*Server, error) {
 		shutdownCh: make(chan struct{}),
 	}
 
+	var errs *multierror.Error
+
 	for _, opt := range opts {
 		if err := opt(s); err != nil {
-			return nil, errors.Wrap(err, "opt error")
+			errs = multierror.Append(err)
 		}
 	}
 
-	return s, nil
+	return s, errs.ErrorOrNil()
 }
 
 func (s *Server) Shutdown() {
