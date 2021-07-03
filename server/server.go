@@ -32,8 +32,7 @@ func NewServer(opts ...ServerOpt) (*Server, error) {
 	}
 
 	for _, opt := range opts {
-		err := opt(s)
-		if err != nil {
+		if err := opt(s); err != nil {
 			return nil, errors.Wrap(err, "opt error")
 		}
 	}
