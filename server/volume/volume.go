@@ -1,8 +1,15 @@
 package volume
 
-import "github.com/p0pr0ck5/volchestrator/server/model"
+import (
+	"github.com/p0pr0ck5/volchestrator/fsm"
+	"github.com/p0pr0ck5/volchestrator/server/model"
+)
 
 type Status int
+
+func (s Status) Value() string {
+	return ""
+}
 
 type VolumeError struct {
 	e string
@@ -26,22 +33,41 @@ const (
 	Detaching
 )
 
-var validStatusTransition = map[Status][]Status{
-	Available:   {Unavailable, Attaching},
-	Unavailable: {Available},
-	Attaching:   {Attached, Detaching},
-	Attached:    {Detaching},
-	Detaching:   {Available, Unavailable},
-}
-
-func contains(needle Status, haystack []Status) bool {
-	for _, s := range haystack {
-		if needle == s {
-			return true
-		}
-	}
-
-	return false
+var sm = fsm.TransitionMap{
+	Available: []fsm.Transition{
+		{
+			State: Unavailable,
+		},
+		{
+			State: Attaching,
+		},
+	},
+	Unavailable: []fsm.Transition{
+		{
+			State: Available,
+		},
+	},
+	Attaching: []fsm.Transition{
+		{
+			State: Attached,
+		},
+		{
+			State: Detaching,
+		},
+	},
+	Attached: []fsm.Transition{
+		{
+			State: Detaching,
+		},
+	},
+	Detaching: []fsm.Transition{
+		{
+			State: Available,
+		},
+		{
+			State: Unavailable,
+		},
+	},
 }
 
 type Volume struct {
@@ -51,6 +77,13 @@ type Volume struct {
 	Region string
 	Tag    string
 	Status Status
+}
+
+func (v *Volume) Init() {
+	v.FSM, _ = fsm.NewFSM(v.Status)
+	for k, vv := range sm {
+		v.FSM.AddTransitions(k, vv)
+	}
 }
 
 func (v *Volume) Validate() error {
@@ -80,7 +113,7 @@ func (v *Volume) ValidateTransition(newVolume *Volume) error {
 		}
 	}
 
-	if v.Status != newVolume.Status && !contains(newVolume.Status, validStatusTransition[v.Status]) {
+	if v.Status != newVolume.Status && !v.FSM.Can(newVolume.Status) {
 		return newVolumeError("invalid status transition")
 	}
 

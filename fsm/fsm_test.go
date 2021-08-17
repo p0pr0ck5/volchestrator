@@ -181,6 +181,26 @@ func TestFSM_Can(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"cannot transition - invalid state",
+			fields{
+				CurrentState: barState,
+				transitionMap: TransitionMap{
+					fooState: []Transition{
+						{
+							State: barState,
+						},
+						{
+							State: fooState,
+						},
+					},
+				},
+			},
+			args{
+				newState: bazState,
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

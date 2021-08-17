@@ -25,6 +25,8 @@ func (b *Backend) ListVolumes() ([]*volume.Volume, error) {
 }
 
 func (b *Backend) CreateVolume(v *volume.Volume) error {
+	v.Init()
+
 	if err := v.Validate(); err != nil {
 		var errMsg string
 

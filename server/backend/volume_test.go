@@ -88,7 +88,10 @@ func TestBackend_UpdateVolume(t *testing.T) {
 			}
 
 			v, _ := b.ReadVolume(tt.want.ID)
-			v.UpdatedAt = time.Time{} // mock
+
+			// mock
+			v.UpdatedAt = time.Time{}
+			v.FSM = nil
 
 			if !reflect.DeepEqual(v, tt.want) {
 				t.Errorf("Backend.UpdateVolume() = %v, want %v", v, tt.want)
