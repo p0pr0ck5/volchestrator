@@ -50,7 +50,7 @@ func WithConfig(c *config.Config) ServerOpt {
 
 func WithTokener(t Tokener) ServerOpt {
 	return func(s *Server) error {
-		s.t = t
+		s.tokener = t
 
 		return nil
 	}

@@ -19,7 +19,7 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterRequest) (*svc.R
 
 	client := &client.Client{
 		ID:         req.ClientId,
-		Token:      s.t.Generate(),
+		Token:      s.tokener.Generate(),
 		Registered: time.Now(),
 	}
 
