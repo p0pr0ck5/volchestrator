@@ -81,14 +81,15 @@ func (m *MockBackend) ReadVolume(id string) (*volume.Volume, error) {
 		return nil, errors.New("error")
 	}
 
-	c := &volume.Volume{
+	v := &volume.Volume{
 		ID:     id,
 		Region: "us-west-2",
 		Tag:    "foo",
 		Status: volume.Unavailable,
 	}
+	v.Init()
 
-	return c, nil
+	return v, nil
 }
 
 func (m *MockBackend) ListVolumes() ([]*volume.Volume, error) {

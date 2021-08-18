@@ -94,8 +94,19 @@ func (b *Backend) DeleteVolume(v *volume.Volume) error {
 		return errors.Wrap(err, "get current volume")
 	}
 
-	if currentVolume.Status != volume.Unavailable {
-		return errors.New("cannot delete volume when it is not unavailable")
+	v.Status = volume.Deleting
+
+	if err := currentVolume.ValidateTransition(v); err != nil {
+		var errMsg string
+
+		_, ok := err.(volume.VolumeError)
+		if ok {
+			errMsg = "volume validation"
+		} else {
+			errMsg = "update volume"
+		}
+
+		return errors.Wrap(err, errMsg)
 	}
 
 	return b.b.DeleteVolume(v)

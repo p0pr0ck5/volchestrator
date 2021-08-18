@@ -31,6 +31,7 @@ const (
 	Attaching
 	Attached
 	Detaching
+	Deleting
 )
 
 var sm = fsm.TransitionMap{
@@ -45,6 +46,9 @@ var sm = fsm.TransitionMap{
 	Unavailable: []fsm.Transition{
 		{
 			State: Available,
+		},
+		{
+			State: Deleting,
 		},
 	},
 	Attaching: []fsm.Transition{
