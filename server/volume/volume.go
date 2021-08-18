@@ -117,7 +117,7 @@ func (v *Volume) ValidateTransition(newVolume *Volume) error {
 		}
 	}
 
-	if v.Status != newVolume.Status && !v.FSM.Can(newVolume.Status) {
+	if !v.FSM.Can(newVolume.Status) {
 		return newVolumeError("invalid status transition")
 	}
 

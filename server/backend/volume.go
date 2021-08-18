@@ -83,31 +83,22 @@ func (b *Backend) UpdateVolume(v *volume.Volume) error {
 		return errors.Wrap(err, errMsg)
 	}
 
+	if err := v.FSM.Transition(v.Status); err != nil {
+		return err
+	}
+
 	v.UpdatedAt = time.Now()
 
 	return b.b.UpdateVolume(v)
 }
 
 func (b *Backend) DeleteVolume(v *volume.Volume) error {
-	currentVolume, err := b.ReadVolume(v.ID)
+	_, err := b.ReadVolume(v.ID)
 	if err != nil {
 		return errors.Wrap(err, "get current volume")
 	}
 
 	v.Status = volume.Deleting
-
-	if err := currentVolume.ValidateTransition(v); err != nil {
-		var errMsg string
-
-		_, ok := err.(volume.VolumeError)
-		if ok {
-			errMsg = "volume validation"
-		} else {
-			errMsg = "update volume"
-		}
-
-		return errors.Wrap(err, errMsg)
-	}
 
 	if err := b.UpdateVolume(v); err != nil {
 		return err

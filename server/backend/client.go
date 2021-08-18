@@ -74,22 +74,22 @@ func (b *Backend) UpdateClient(c *client.Client) error {
 		return errors.Wrap(err, "client transition")
 	}
 
+	if err := c.FSM.Transition(c.Status); err != nil {
+		return err
+	}
+
 	c.UpdatedAt = time.Now()
 
 	return b.b.UpdateClient(c)
 }
 
 func (b *Backend) DeleteClient(c *client.Client) error {
-	currentClient, err := b.ReadClient(c.ID)
+	_, err := b.ReadClient(c.ID)
 	if err != nil {
 		return errors.Wrap(err, "get current client")
 	}
 
 	c.Status = client.Deleting
-
-	if err := currentClient.ValidateTransition(c); err != nil {
-		return errors.Wrap(err, "client transition")
-	}
 
 	if err := b.UpdateClient(c); err != nil {
 		return err

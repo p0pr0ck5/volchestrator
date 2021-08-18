@@ -61,6 +61,10 @@ func (f *FSM) Can(newState State) bool {
 	f.stateMutex.Lock()
 	defer f.stateMutex.Unlock()
 
+	if f.CurrentState == newState {
+		return true
+	}
+
 	for _, candidate := range f.transitionMap[f.CurrentState] {
 		if candidate.State == newState {
 			return true

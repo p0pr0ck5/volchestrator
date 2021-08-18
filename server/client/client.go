@@ -74,7 +74,7 @@ func (c *Client) ValidateTransition(newClient *Client) error {
 		return newClientError("cannot change id")
 	}
 
-	if c.Status != newClient.Status && !c.FSM.Can(newClient.Status) {
+	if !c.FSM.Can(newClient.Status) {
 		return newClientError("invalid status transition")
 	}
 
