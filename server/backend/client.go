@@ -91,5 +91,9 @@ func (b *Backend) DeleteClient(c *client.Client) error {
 		return errors.Wrap(err, "client transition")
 	}
 
+	if err := b.UpdateClient(c); err != nil {
+		return err
+	}
+
 	return b.b.DeleteClient(c)
 }

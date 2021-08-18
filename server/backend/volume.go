@@ -109,5 +109,9 @@ func (b *Backend) DeleteVolume(v *volume.Volume) error {
 		return errors.Wrap(err, errMsg)
 	}
 
+	if err := b.UpdateVolume(v); err != nil {
+		return err
+	}
+
 	return b.b.DeleteVolume(v)
 }
