@@ -90,8 +90,11 @@ func TestBackend_UpdateClient(t *testing.T) {
 			}
 
 			c, _ := b.ReadClient(tt.want.ID)
+
+			// mock
 			c.UpdatedAt = time.Time{}
 			c.CreatedAt = time.Time{}
+			c.FSM = nil
 
 			if !reflect.DeepEqual(c, tt.want) {
 				t.Errorf("Backend.UpdateClient() = %v, want %v", c, tt.want)

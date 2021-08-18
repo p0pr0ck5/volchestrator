@@ -34,6 +34,7 @@ func (m *MockBackend) ReadClient(id string) (*client.Client, error) {
 		Registered: nowIsh(),
 		LastSeen:   nowIsh(),
 	}
+	c.Init()
 
 	return c, nil
 }

@@ -8,8 +8,12 @@ package volchestrator;
 
 message Client {
   string client_id = 1;
-  google.protobuf.Timestamp registered = 2;
-  google.protobuf.Timestamp last_seen = 3;
+  enum Status {
+    Alive = 0;
+  }
+  Status status = 2;
+  google.protobuf.Timestamp registered = 3;
+  google.protobuf.Timestamp last_seen = 4;
 }
 
 message GetClientRequest {

@@ -43,6 +43,8 @@ func (b *Backend) ListClients() ([]*client.Client, error) {
 }
 
 func (b *Backend) CreateClient(c *client.Client) error {
+	c.Init()
+
 	if err := c.Validate(); err != nil {
 		return errors.Wrap(err, "client validation")
 	}
@@ -68,11 +70,26 @@ func (b *Backend) UpdateClient(c *client.Client) error {
 		return errors.Wrap(err, "client validation")
 	}
 
+	if err := currentClient.ValidateTransition(c); err != nil {
+		return errors.Wrap(err, "client transition")
+	}
+
 	c.UpdatedAt = time.Now()
 
 	return b.b.UpdateClient(c)
 }
 
 func (b *Backend) DeleteClient(c *client.Client) error {
+	currentClient, err := b.ReadClient(c.ID)
+	if err != nil {
+		return errors.Wrap(err, "get current client")
+	}
+
+	c.Status = client.Deleting
+
+	if err := currentClient.ValidateTransition(c); err != nil {
+		return errors.Wrap(err, "client transition")
+	}
+
 	return b.b.DeleteClient(c)
 }
