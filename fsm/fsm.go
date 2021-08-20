@@ -5,9 +5,7 @@ import (
 	"sync"
 )
 
-type State interface {
-	Value() string
-}
+type State interface{}
 
 type EventArg interface{}
 
@@ -46,6 +44,10 @@ func NewFSM(defaultState State) (*FSM, error) {
 	}
 
 	return f, nil
+}
+
+func (f *FSM) Nil() {
+	f = nil
 }
 
 func (f *FSM) AddTransitions(state State, transitions []Transition) error {
@@ -106,8 +108,4 @@ func (f *FSM) Transition(newState State, args ...EventArg) error {
 	}
 
 	return nil
-}
-
-func (f *FSM) Value() string {
-	return f.CurrentState.Value()
 }

@@ -9,10 +9,6 @@ import (
 
 type Status int
 
-func (s Status) Value() string {
-	return ""
-}
-
 type ClientError struct {
 	e string
 }
@@ -69,7 +65,9 @@ func (c *Client) Validate() error {
 	return nil
 }
 
-func (c *Client) ValidateTransition(newClient *Client) error {
+func (c *Client) ValidateTransition(m model.Base) error {
+	newClient := m.(*Client)
+
 	if c.ID != newClient.ID {
 		return newClientError("cannot change id")
 	}
@@ -79,4 +77,8 @@ func (c *Client) ValidateTransition(newClient *Client) error {
 	}
 
 	return nil
+}
+
+func (c *Client) F() *fsm.FSM {
+	return c.FSM
 }

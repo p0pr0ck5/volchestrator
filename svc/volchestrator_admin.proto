@@ -35,11 +35,12 @@ message Volume {
   string region = 2;
   string tag = 3;
   enum Status {
-    Available = 0;
-    Unavailable = 1;
-    Attaching = 2;
-    Attached = 3;
-    Detaching = 4;
+    unused = 0;
+    Available = 1;
+    Unavailable = 2;
+    Attaching = 3;
+    Attached = 4;
+    Detaching = 5;
   }
   Status status = 4;
 }

@@ -23,7 +23,7 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterRequest) (*svc.R
 		Registered: time.Now(),
 	}
 
-	if err := s.b.CreateClient(client); err != nil {
+	if err := s.b.Create(client); err != nil {
 		return nil, errors.Wrap(err, "create failed")
 	}
 
@@ -40,8 +40,11 @@ func (s *Server) Deregister(ctx context.Context, req *svc.DeregisterRequest) (*s
 		return nil, errors.New("empty client id")
 	}
 
-	client, err := s.b.ReadClient(req.ClientId)
-	if err != nil {
+	client := &client.Client{
+		ID: req.ClientId,
+	}
+
+	if err := s.b.Read(client); err != nil {
 		return nil, errors.Wrap(err, "get client")
 	}
 
@@ -49,7 +52,7 @@ func (s *Server) Deregister(ctx context.Context, req *svc.DeregisterRequest) (*s
 		return nil, errors.New("invalid token")
 	}
 
-	if err := s.b.DeleteClient(client); err != nil {
+	if err := s.b.Delete(client); err != nil {
 		return nil, errors.Wrap(err, "delete failed")
 	}
 
@@ -61,8 +64,11 @@ func (s *Server) Ping(ctx context.Context, req *svc.PingRequest) (*svc.PingRespo
 		return nil, errors.New("empty client id")
 	}
 
-	client, err := s.b.ReadClient(req.ClientId)
-	if err != nil {
+	client := &client.Client{
+		ID: req.ClientId,
+	}
+
+	if err := s.b.Read(client); err != nil {
 		return nil, errors.Wrap(err, "get client")
 	}
 
@@ -70,7 +76,7 @@ func (s *Server) Ping(ctx context.Context, req *svc.PingRequest) (*svc.PingRespo
 		return nil, errors.New("invalid token")
 	}
 
-	if err := s.b.UpdateClient(client); err != nil {
+	if err := s.b.Update(client); err != nil {
 		return nil, errors.Wrap(err, "update failed")
 	}
 
@@ -82,8 +88,11 @@ func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream s
 		return errors.New("empty client id")
 	}
 
-	client, err := s.b.ReadClient(req.ClientId)
-	if err != nil {
+	client := &client.Client{
+		ID: req.ClientId,
+	}
+
+	if err := s.b.Read(client); err != nil {
 		return errors.Wrap(err, "get client")
 	}
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/model"
 )
 
 func TestWithMemoryBackend(t *testing.T) {
@@ -66,10 +67,12 @@ func TestWithMemoryBackend(t *testing.T) {
 				ID:    "foo",
 				Token: "mock",
 			}
-			s1.b.CreateClient(c)
+			s1.b.Create(c)
 
-			l1, _ := s1.b.ListClients()
-			l2, _ := s2.b.ListClients()
+			l1 := []model.Base{}
+			l2 := []model.Base{}
+			s1.b.List("client", &l1)
+			s2.b.List("client", &l2)
 			if (len(l1) == len(l2)) != tt.wantEqual {
 				t.Errorf("s1.b == s2.b = %v, want %v", s1.b == s2.b, tt.wantEqual)
 			}

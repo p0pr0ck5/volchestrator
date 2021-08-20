@@ -12,3 +12,10 @@ type Model struct {
 
 	FSM *fsm.FSM
 }
+
+type Base interface {
+	Init()
+	Validate() error
+	ValidateTransition(Base) error
+	F() *fsm.FSM
+}

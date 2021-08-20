@@ -6,7 +6,9 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 
 	"github.com/p0pr0ck5/volchestrator/server/backend"
+	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/config"
+	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
 
@@ -48,15 +50,16 @@ func (s *Server) Shutdown() {
 func (s *Server) PruneClients() error {
 	var errs *multierror.Error
 
-	clients, err := s.b.ListClients()
-	if err != nil {
+	clients := []model.Base{}
+	if err := s.b.List("client", &clients); err != nil {
 		errs = multierror.Append(err)
 		return errs
 	}
 
-	for _, client := range clients {
-		if time.Now().Sub(client.LastSeen) > time.Second*time.Duration(s.config.ClientTTL) {
-			err := s.b.DeleteClient(client)
+	for _, cc := range clients {
+		c := cc.(*client.Client)
+		if time.Since(c.LastSeen) > time.Second*time.Duration(s.config.ClientTTL) {
+			err := s.b.Delete(cc)
 			if err != nil {
 				errs = multierror.Append(err)
 			}

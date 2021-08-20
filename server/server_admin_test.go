@@ -193,6 +193,7 @@ func TestServer_AddVolume(t *testing.T) {
 						VolumeId: "foo",
 						Region:   "us-west-2",
 						Tag:      "bar",
+						Status:   svc.Volume_Status(volume.Available),
 					},
 				},
 			},

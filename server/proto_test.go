@@ -85,7 +85,7 @@ func Test_toProto(t *testing.T) {
 				VolumeId: "foo",
 				Region:   "us-west-2",
 				Tag:      "foo",
-				Status:   svc.Volume_Available,
+				Status:   svc.Volume_unused,
 			},
 		},
 		{
@@ -150,7 +150,7 @@ func Test_toStruct(t *testing.T) {
 				ID:     "foo",
 				Region: "us-west-2",
 				Tag:    "bar",
-				Status: volume.Available,
+				Status: 0,
 			},
 		},
 	}

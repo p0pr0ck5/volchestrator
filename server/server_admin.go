@@ -5,6 +5,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
@@ -14,9 +16,11 @@ func (s *Server) GetClient(ctx context.Context, req *svc.GetClientRequest) (*svc
 		return nil, errors.New("empty client id")
 	}
 
-	client, err := s.b.ReadClient(req.ClientId)
+	client := &client.Client{
+		ID: req.ClientId,
+	}
 
-	if err != nil {
+	if err := s.b.Read(client); err != nil {
 		return nil, err
 	}
 
@@ -28,8 +32,8 @@ func (s *Server) GetClient(ctx context.Context, req *svc.GetClientRequest) (*svc
 }
 
 func (s *Server) ListClients(ctx context.Context, req *svc.ListClientsRequest) (*svc.ListClientsResponse, error) {
-	clients, err := s.b.ListClients()
-	if err != nil {
+	clients := []model.Base{}
+	if err := s.b.List("client", &clients); err != nil {
 		return nil, err
 	}
 
@@ -47,9 +51,11 @@ func (s *Server) GetVolume(ctx context.Context, req *svc.GetVolumeRequest) (*svc
 		return nil, errors.New("empty client id")
 	}
 
-	volume, err := s.b.ReadVolume(req.VolumeId)
+	volume := &volume.Volume{
+		ID: req.VolumeId,
+	}
 
-	if err != nil {
+	if err := s.b.Read(volume); err != nil {
 		return nil, err
 	}
 
@@ -61,8 +67,8 @@ func (s *Server) GetVolume(ctx context.Context, req *svc.GetVolumeRequest) (*svc
 }
 
 func (s *Server) ListVolumes(ctx context.Context, req *svc.ListVolumesRequest) (*svc.ListVolumesReponse, error) {
-	volumes, err := s.b.ListVolumes()
-	if err != nil {
+	volumes := []model.Base{}
+	if err := s.b.List("volume", &volumes); err != nil {
 		return nil, err
 	}
 
@@ -82,7 +88,7 @@ func (s *Server) AddVolume(ctx context.Context, req *svc.AddVolumeRequest) (*svc
 		return nil, errors.New("invalid status")
 	}
 
-	if err := s.b.CreateVolume(v); err != nil {
+	if err := s.b.Create(v); err != nil {
 		return nil, errors.Wrap(err, "create failed")
 	}
 
@@ -92,7 +98,7 @@ func (s *Server) AddVolume(ctx context.Context, req *svc.AddVolumeRequest) (*svc
 func (s *Server) UpdateVolume(ctx context.Context, req *svc.UpdateVolumeRequest) (*svc.UpdateVolumeResponse, error) {
 	v := toStruct(req.Volume).(*volume.Volume)
 
-	if err := s.b.UpdateVolume(v); err != nil {
+	if err := s.b.Update(v); err != nil {
 		return nil, errors.Wrap(err, "update failed")
 	}
 
@@ -102,7 +108,7 @@ func (s *Server) UpdateVolume(ctx context.Context, req *svc.UpdateVolumeRequest)
 func (s *Server) DeleteVolume(ctx context.Context, req *svc.DeleteVolumeRequest) (*svc.DeleteVolumeResponse, error) {
 	v := toStruct(req.Volume).(*volume.Volume)
 
-	if err := s.b.DeleteVolume(v); err != nil {
+	if err := s.b.Delete(v); err != nil {
 		return nil, errors.Wrap(err, "delete failed")
 	}
 

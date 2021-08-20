@@ -51,14 +51,14 @@ func TestFSM_Value(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   string
+		want   State
 	}{
 		{
 			"foo",
 			fields{
 				CurrentState: fooState,
 			},
-			"foo",
+			fooState,
 		},
 	}
 	for _, tt := range tests {
@@ -66,7 +66,7 @@ func TestFSM_Value(t *testing.T) {
 			f := &FSM{
 				CurrentState: tt.fields.CurrentState,
 			}
-			if got := f.Value(); got != tt.want {
+			if got := f.CurrentState; got != tt.want {
 				t.Errorf("FSM.Value() = %v, want %v", got, tt.want)
 			}
 		})

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
@@ -12,6 +13,10 @@ import (
 func nowIsh() time.Time {
 	t := time.Now()
 	return t.Round(time.Hour)
+}
+
+func NowIsh() time.Time {
+	return nowIsh()
 }
 
 type MockBackend struct {
@@ -33,6 +38,10 @@ func (m *MockBackend) ReadClient(id string) (*client.Client, error) {
 		Token:      "mock",
 		Registered: nowIsh(),
 		LastSeen:   nowIsh(),
+
+		Model: model.Model{
+			CreatedAt: nowIsh(),
+		},
 	}
 	c.Init()
 
@@ -87,6 +96,10 @@ func (m *MockBackend) ReadVolume(id string) (*volume.Volume, error) {
 		Region: "us-west-2",
 		Tag:    "foo",
 		Status: volume.Unavailable,
+
+		Model: model.Model{
+			CreatedAt: nowIsh(),
+		},
 	}
 	v.Init()
 

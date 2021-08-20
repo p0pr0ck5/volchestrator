@@ -9,6 +9,7 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/config"
+	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/pkg/errors"
 )
 
@@ -178,9 +179,15 @@ func TestServer_PruneClients(t *testing.T) {
 				t.Errorf("Server.PruneClients() error = %v", err)
 			}
 
-			clients, _ := s.b.ListClients()
-			if !reflect.DeepEqual(clients, tt.want) {
-				t.Errorf("Server.ListClients() = %v, want %v", clients, tt.want)
+			clients := []model.Base{}
+			s.b.List("client", &clients)
+
+			c := []*client.Client{}
+			for _, cc := range clients {
+				c = append(c, cc.(*client.Client))
+			}
+			if !reflect.DeepEqual(c, tt.want) {
+				t.Errorf("Server.List() = %v, want %v", c, tt.want)
 			}
 		})
 	}

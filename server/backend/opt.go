@@ -28,7 +28,7 @@ func WithMockBackend(m *mock.MockBackend) BackendOpt {
 func WithClients(clients []*client.Client) BackendOpt {
 	return func(b *Backend) error {
 		for _, c := range clients {
-			err := b.CreateClient(c)
+			err := b.Create(c)
 			if err != nil {
 				return err
 			}
@@ -38,10 +38,10 @@ func WithClients(clients []*client.Client) BackendOpt {
 	}
 }
 
-func WithVolumes(clients []*volume.Volume) BackendOpt {
+func WithVolumes(volumes []*volume.Volume) BackendOpt {
 	return func(b *Backend) error {
-		for _, c := range clients {
-			err := b.CreateVolume(c)
+		for _, v := range volumes {
+			err := b.Create(v)
 			if err != nil {
 				return err
 			}

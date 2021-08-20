@@ -7,10 +7,6 @@ import (
 
 type Status int
 
-func (s Status) Value() string {
-	return ""
-}
-
 type VolumeError struct {
 	e string
 }
@@ -26,7 +22,8 @@ func (e VolumeError) Error() string {
 }
 
 const (
-	Available Status = iota
+	unused Status = iota
+	Available
 	Unavailable
 	Attaching
 	Attached
@@ -106,7 +103,9 @@ func (v *Volume) Validate() error {
 	return nil
 }
 
-func (v *Volume) ValidateTransition(newVolume *Volume) error {
+func (v *Volume) ValidateTransition(m model.Base) error {
+	newVolume := m.(*Volume)
+
 	if v.ID != newVolume.ID {
 		return newVolumeError("cannot change id")
 	}
@@ -122,4 +121,8 @@ func (v *Volume) ValidateTransition(newVolume *Volume) error {
 	}
 
 	return nil
+}
+
+func (v *Volume) F() *fsm.FSM {
+	return v.FSM
 }
