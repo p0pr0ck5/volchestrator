@@ -3,23 +3,16 @@ package backend
 import (
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
-	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/notification"
-	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
 type backend interface {
-	ReadClient(id string) (*client.Client, error)
-	ListClients() ([]*client.Client, error)
-	CreateClient(*client.Client) error
-	UpdateClient(*client.Client) error
-	DeleteClient(*client.Client) error
-
-	ReadVolume(id string) (*volume.Volume, error)
-	ListVolumes() ([]*volume.Volume, error)
-	CreateVolume(*volume.Volume) error
-	UpdateVolume(*volume.Volume) error
-	DeleteVolume(*volume.Volume) error
+	Create(model.Base) error
+	Read(model.Base) (model.Base, error)
+	Update(model.Base) error
+	Delete(model.Base) error
+	List(string, *[]model.Base) error
 
 	WriteNotification(*notification.Notification) error
 	GetNotifications(string) (<-chan *notification.Notification, error)

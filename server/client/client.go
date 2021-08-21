@@ -23,6 +23,11 @@ func (e ClientError) Error() string {
 	return e.e
 }
 
+var statusMap = map[string]Status{
+	"Alive":    Alive,
+	"Deleting": Deleting,
+}
+
 const (
 	Alive Status = iota
 	Deleting
@@ -77,6 +82,14 @@ func (c *Client) ValidateTransition(m model.Base) error {
 	}
 
 	return nil
+}
+
+func (c *Client) StatusVal() int {
+	return int(c.Status)
+}
+
+func (c *Client) SetStatus(s string) {
+	c.Status = statusMap[s]
 }
 
 func (c *Client) F() *fsm.FSM {

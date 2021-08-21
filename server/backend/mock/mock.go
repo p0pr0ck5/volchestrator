@@ -2,6 +2,8 @@ package mock
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
@@ -161,4 +163,85 @@ func (m *MockBackend) GetNotifications(id string) (<-chan *notification.Notifica
 	}()
 
 	return ch, nil
+}
+
+func (m *MockBackend) Create(entity model.Base) error {
+	entityType := reflect.ValueOf(entity).Elem().Type().Name()
+
+	switch entityType {
+	case "Client":
+		return m.CreateClient(entity.(*client.Client))
+	case "Volume":
+		return m.CreateVolume(entity.(*volume.Volume))
+	default:
+		return fmt.Errorf("unsupported type %q", entityType)
+	}
+}
+
+func (m *MockBackend) Read(entity model.Base) (model.Base, error) {
+	entityType := reflect.ValueOf(entity).Elem().Type().Name()
+
+	switch entityType {
+	case "Client":
+		return m.ReadClient(entity.(*client.Client).ID)
+	case "Volume":
+		return m.ReadVolume(entity.(*volume.Volume).ID)
+	default:
+		return nil, fmt.Errorf("unsupported type %q", entityType)
+	}
+}
+
+func (m *MockBackend) Update(entity model.Base) error {
+	entityType := reflect.ValueOf(entity).Elem().Type().Name()
+
+	switch entityType {
+	case "Client":
+		return m.UpdateClient(entity.(*client.Client))
+	case "Volume":
+		return m.UpdateVolume(entity.(*volume.Volume))
+	default:
+		return fmt.Errorf("unsupported type %q", entityType)
+	}
+}
+
+func (m *MockBackend) Delete(entity model.Base) error {
+	entityType := reflect.ValueOf(entity).Elem().Type().Name()
+
+	switch entityType {
+	case "Client":
+		return m.DeleteClient(entity.(*client.Client))
+	case "Volume":
+		return m.DeleteVolume(entity.(*volume.Volume))
+	default:
+		return fmt.Errorf("unsupported type %q", entityType)
+	}
+}
+
+func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
+	switch entityType {
+	case "client":
+		clients, err := m.ListClients()
+		if err != nil {
+			return err
+		}
+
+		for _, client := range clients {
+			*entities = append(*entities, client)
+		}
+
+		return nil
+	case "volume":
+		volumes, err := m.ListVolumes()
+		if err != nil {
+			return err
+		}
+
+		for _, volume := range volumes {
+			*entities = append(*entities, volume)
+		}
+
+		return nil
+	default:
+		return fmt.Errorf("unsupported type %q", entityType)
+	}
 }

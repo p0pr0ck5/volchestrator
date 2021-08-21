@@ -21,6 +21,15 @@ func (e VolumeError) Error() string {
 	return e.e
 }
 
+var statusMap = map[string]Status{
+	"Available":   Available,
+	"Unavailable": Unavailable,
+	"Attaching":   Attaching,
+	"Attached":    Attached,
+	"Detaching":   Detaching,
+	"Deleting":    Deleting,
+}
+
 const (
 	unused Status = iota
 	Available
@@ -121,6 +130,14 @@ func (v *Volume) ValidateTransition(m model.Base) error {
 	}
 
 	return nil
+}
+
+func (v *Volume) StatusVal() int {
+	return int(v.Status)
+}
+
+func (v *Volume) SetStatus(s string) {
+	v.Status = statusMap[s]
 }
 
 func (v *Volume) F() *fsm.FSM {
