@@ -151,8 +151,8 @@ func (b *Backend) Delete(entity model.Base) error {
 	}
 }
 
-func (b *Backend) List(s string, entities *[]model.Base) error {
-	switch s {
+func (b *Backend) List(entityType string, entities *[]model.Base) error {
+	switch entityType {
 	case "client":
 		clients, err := b.b.ListClients()
 		if err != nil {
@@ -162,6 +162,8 @@ func (b *Backend) List(s string, entities *[]model.Base) error {
 		for _, client := range clients {
 			*entities = append(*entities, client)
 		}
+
+		return nil
 	case "volume":
 		volumes, err := b.b.ListVolumes()
 		if err != nil {
@@ -171,9 +173,11 @@ func (b *Backend) List(s string, entities *[]model.Base) error {
 		for _, volume := range volumes {
 			*entities = append(*entities, volume)
 		}
-	}
 
-	return nil
+		return nil
+	default:
+		return fmt.Errorf("unsupported type %q", entityType)
+	}
 }
 
 func copy(src, dest interface{}, fullMerge bool) {
