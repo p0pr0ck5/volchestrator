@@ -84,10 +84,6 @@ func (c *Client) ValidateTransition(m model.Base) error {
 	return nil
 }
 
-func (c *Client) StatusVal() int {
-	return int(c.Status)
-}
-
 func (c *Client) SetStatus(s string) {
 	c.Status = statusMap[s]
 }

@@ -132,10 +132,6 @@ func (v *Volume) ValidateTransition(m model.Base) error {
 	return nil
 }
 
-func (v *Volume) StatusVal() int {
-	return int(v.Status)
-}
-
 func (v *Volume) SetStatus(s string) {
 	v.Status = statusMap[s]
 }

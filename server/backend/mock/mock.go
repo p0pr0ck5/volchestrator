@@ -165,56 +165,62 @@ func (m *MockBackend) GetNotifications(id string) (<-chan *notification.Notifica
 	return ch, nil
 }
 
-func (m *MockBackend) Create(entity model.Base) error {
+func (m *MockBackend) crud(op string, entity model.Base) error {
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
 
-	switch entityType {
-	case "Client":
-		return m.CreateClient(entity.(*client.Client))
-	case "Volume":
-		return m.CreateVolume(entity.(*volume.Volume))
-	default:
+	fnName := op + entityType
+
+	ff := reflect.ValueOf(m).MethodByName(fnName)
+
+	if !ff.IsValid() {
 		return fmt.Errorf("unsupported type %q", entityType)
 	}
+
+	res := ff.Call([]reflect.Value{
+		reflect.ValueOf(entity),
+	})
+
+	if err, ok := res[0].Interface().(error); ok {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (m *MockBackend) Create(entity model.Base) error {
+	return m.crud("Create", entity)
 }
 
 func (m *MockBackend) Read(entity model.Base) (model.Base, error) {
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
 
-	switch entityType {
-	case "Client":
-		return m.ReadClient(entity.(*client.Client).ID)
-	case "Volume":
-		return m.ReadVolume(entity.(*volume.Volume).ID)
-	default:
+	fnName := "Read" + entityType
+
+	ff := reflect.ValueOf(m).MethodByName(fnName)
+
+	if !ff.IsValid() {
 		return nil, fmt.Errorf("unsupported type %q", entityType)
+	}
+
+	id := reflect.ValueOf(entity).Elem().FieldByName("ID")
+
+	res := ff.Call([]reflect.Value{
+		id,
+	})
+
+	if err, ok := res[1].Interface().(error); ok {
+		return nil, err
+	} else {
+		return res[0].Interface().(model.Base), nil
 	}
 }
 
 func (m *MockBackend) Update(entity model.Base) error {
-	entityType := reflect.ValueOf(entity).Elem().Type().Name()
-
-	switch entityType {
-	case "Client":
-		return m.UpdateClient(entity.(*client.Client))
-	case "Volume":
-		return m.UpdateVolume(entity.(*volume.Volume))
-	default:
-		return fmt.Errorf("unsupported type %q", entityType)
-	}
+	return m.crud("Update", entity)
 }
 
 func (m *MockBackend) Delete(entity model.Base) error {
-	entityType := reflect.ValueOf(entity).Elem().Type().Name()
-
-	switch entityType {
-	case "Client":
-		return m.DeleteClient(entity.(*client.Client))
-	case "Volume":
-		return m.DeleteVolume(entity.(*volume.Volume))
-	default:
-		return fmt.Errorf("unsupported type %q", entityType)
-	}
+	return m.crud("Delete", entity)
 }
 
 func (m *MockBackend) List(entityType string, entities *[]model.Base) error {

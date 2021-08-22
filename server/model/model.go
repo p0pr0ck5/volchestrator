@@ -17,7 +17,6 @@ type Base interface {
 	Init()
 	Validate() error
 	ValidateTransition(Base) error
-	StatusVal() int
 	SetStatus(string)
 	F() *fsm.FSM
 }

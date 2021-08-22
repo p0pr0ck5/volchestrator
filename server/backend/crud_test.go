@@ -23,10 +23,6 @@ func (m *mockBase) ValidateTransition(i model.Base) error {
 	return nil
 }
 
-func (m *mockBase) StatusVal() int {
-	return 0
-}
-
 func (m *mockBase) SetStatus(s string) {}
 
 func (m *mockBase) F() *fsm.FSM {
