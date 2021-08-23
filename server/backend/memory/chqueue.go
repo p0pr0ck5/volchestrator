@@ -57,8 +57,8 @@ func (c *ChQueue) Write(n *notification.Notification) error {
 	n.SetMessageID(c.count)
 	c.countLock.Unlock()
 
+	c.wg.Add(1)
 	go func(n *notification.Notification) {
-		c.wg.Add(1)
 		defer c.wg.Done()
 
 		select {
