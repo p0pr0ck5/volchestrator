@@ -1149,3 +1149,59 @@ func Test_WatchNotifications_Deregister(t *testing.T) {
 		t.Errorf("stream.Recv() error = %v", err)
 	}
 }
+
+func Test_Client_Lifecycle(t *testing.T) {
+	srv, bufDialer := mockServer()
+	srv.b = backend.NewMemoryBackend()
+
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
+	}
+	defer conn.Close()
+	client := svc.NewVolchestratorClient(conn)
+
+	id := "foo"
+
+	// register
+	res, err := client.Register(context.Background(), &svc.RegisterRequest{
+		ClientId: id,
+	})
+	if err != nil {
+		t.Errorf("client.Register() unexpected error = %v", err)
+	}
+
+	token := res.Token
+
+	// ping several times in a row
+	for i := 0; i < 3; i++ {
+		_, err = client.Ping(context.Background(), &svc.PingRequest{
+			ClientId: id,
+			Token:    token,
+		})
+		if err != nil {
+			t.Errorf("client.Ping() unexpected error = %v", err)
+		}
+	}
+
+	// deregister
+	_, err = client.Deregister(context.Background(), &svc.DeregisterRequest{
+		ClientId: id,
+		Token:    token,
+	})
+	if err != nil {
+		t.Errorf("client.Deregister() unexpected error = %v", err)
+	}
+
+	// cannot ping again
+	for i := 0; i < 3; i++ {
+		_, err = client.Ping(context.Background(), &svc.PingRequest{
+			ClientId: id,
+			Token:    token,
+		})
+		if err == nil {
+			t.Errorf("client.Ping() expected error, got = %v", err)
+		}
+	}
+}
