@@ -9,9 +9,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-type post_op func(*Memory, model.Base) error
+type postOp func(*Memory, model.Base) error
 
-var post_op_map = map[string]post_op{
+var postOpMap = map[string]postOp{
 	"CreateClient": func(m *Memory, entity model.Base) error {
 		queue, err := NewChQueue()
 		if err != nil {
@@ -30,6 +30,7 @@ var post_op_map = map[string]post_op{
 		if err := queue.Close(); err != nil {
 			return err
 		}
+
 		delete(m.notificationMap, id)
 
 		return nil
@@ -48,10 +49,7 @@ func (m *Memory) crud(op string, entity model.Base) error {
 	_, err := m.Read(entity)
 	exists := err == nil
 
-	dMap := m.getMap(entityType)
-
-	m.l.Lock()
-	defer m.l.Unlock()
+	arg := reflect.Value{}
 
 	switch op {
 	case "Create":
@@ -59,22 +57,25 @@ func (m *Memory) crud(op string, entity model.Base) error {
 			return fmt.Errorf("%s %q already exists", entityType, id)
 		}
 
-		dMap.SetMapIndex(reflect.ValueOf(id), reflect.ValueOf(entity))
+		arg = reflect.ValueOf(entity)
 	case "Update":
 		if !exists {
-			return fmt.Errorf("%s %q already exists", entityType, id)
+			return fmt.Errorf("%s %q does not exist", entityType, id)
 		}
 
-		dMap.SetMapIndex(reflect.ValueOf(id), reflect.ValueOf(entity))
+		arg = reflect.ValueOf(entity)
 	case "Delete":
 		if !exists {
-			return fmt.Errorf("%s %q already exists", entityType, id)
+			return fmt.Errorf("%s %q does not exist", entityType, id)
 		}
-
-		dMap.SetMapIndex(reflect.ValueOf(id), reflect.Value{})
 	}
 
-	if postFunc, ok := post_op_map[op+entityType]; ok {
+	m.l.Lock()
+	defer m.l.Unlock()
+
+	m.getMap(entityType).SetMapIndex(reflect.ValueOf(id), arg)
+
+	if postFunc, ok := postOpMap[op+entityType]; ok {
 		postFunc(m, entity)
 	}
 
