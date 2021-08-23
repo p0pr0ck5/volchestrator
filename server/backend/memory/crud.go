@@ -38,7 +38,12 @@ var postOpMap = map[string]postOp{
 }
 
 func (m *Memory) getMap(entityType string) reflect.Value {
-	return reflect.ValueOf(m).Elem().FieldByName(entityType + "Map")
+	mm := reflect.ValueOf(m).Elem().FieldByName(entityType + "Map")
+	if !mm.IsValid() {
+		panic(fmt.Sprintf("unsupported type %q", entityType))
+	}
+
+	return mm
 }
 
 func (m *Memory) crud(op string, entity model.Base) error {
@@ -68,6 +73,8 @@ func (m *Memory) crud(op string, entity model.Base) error {
 		if !exists {
 			return fmt.Errorf("%s %q does not exist", entityType, id)
 		}
+
+		// arg is zero value to mimic 'delete(map, id)'
 	}
 
 	m.l.Lock()
@@ -92,10 +99,7 @@ func (m *Memory) Read(entity model.Base) (model.Base, error) {
 
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
 
-	id := entity.Identifier()
-	dMap := m.getMap(entityType)
-
-	res := dMap.MapIndex(reflect.ValueOf(id))
+	res := m.getMap(entityType).MapIndex(reflect.ValueOf(entity.Identifier()))
 	if !res.IsValid() {
 		return nil, errors.New("not found")
 	}
@@ -115,9 +119,7 @@ func (m *Memory) List(entityType string, entities *[]model.Base) error {
 	m.l.RLock()
 	defer m.l.RUnlock()
 
-	dMap := m.getMap(entityType)
-
-	iter := dMap.MapRange()
+	iter := m.getMap(entityType).MapRange()
 	for iter.Next() {
 		v := iter.Value().Interface().(model.Base)
 		*entities = append(*entities, v)

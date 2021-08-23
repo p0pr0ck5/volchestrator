@@ -942,6 +942,18 @@ func Test_Volume_Lifecycle(t *testing.T) {
 	defer conn.Close()
 	client := svc.NewVolchestratorAdminClient(conn)
 
+	// forget to set initial status
+	_, err = client.AddVolume(context.Background(), &svc.AddVolumeRequest{
+		Volume: &svc.Volume{
+			VolumeId: "foo",
+			Region:   "us-west-2",
+			Tag:      "foo",
+		},
+	})
+	if err == nil {
+		t.Errorf("client.AddVolume() expected error, got = %v", err)
+	}
+
 	// create a volume
 	_, err = client.AddVolume(context.Background(), &svc.AddVolumeRequest{
 		Volume: &svc.Volume{

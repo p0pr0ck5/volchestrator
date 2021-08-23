@@ -573,3 +573,65 @@ func TestMemory_List(t *testing.T) {
 		})
 	}
 }
+
+func TestMemory_getMap(t *testing.T) {
+	type fields struct {
+		ClientMap ClientMap
+		VolumeMap VolumeMap
+	}
+	type args struct {
+		entityType string
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		args      args
+		wantPanic bool
+	}{
+		{
+			"client",
+			fields{
+				ClientMap: make(ClientMap),
+			},
+			args{
+				"Client",
+			},
+			false,
+		},
+		{
+			"volume",
+			fields{
+				ClientMap: make(ClientMap),
+			},
+			args{
+				"Volume",
+			},
+			false,
+		},
+		{
+			"invalid",
+			fields{
+				ClientMap: make(ClientMap),
+			},
+			args{
+				"nope",
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Memory{
+				ClientMap: tt.fields.ClientMap,
+				VolumeMap: tt.fields.VolumeMap,
+			}
+			defer func() {
+				if r := recover(); (r != nil) != tt.wantPanic {
+					t.Error("Memory.getMap() did not panic as expected")
+				}
+			}()
+
+			m.getMap(tt.args.entityType)
+		})
+	}
+}

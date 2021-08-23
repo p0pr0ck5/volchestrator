@@ -49,10 +49,9 @@ func (b *Backend) Update(entity model.Base) error {
 		return err
 	}
 
-	var s fsm.State = 0
+	var s fsm.State
 	i := reflect.ValueOf(entity).Elem().FieldByName("Status")
 	reflect.ValueOf(&s).Elem().Set(i)
-
 	if err := entity.F().Transition(s, entity); err != nil {
 		return err
 	}
