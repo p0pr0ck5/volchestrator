@@ -929,3 +929,114 @@ func Test_DeleteVolume(t *testing.T) {
 		})
 	}
 }
+
+func Test_Volume_Lifecycle(t *testing.T) {
+	srv, bufDialer := mockServer()
+	srv.b = backend.NewMemoryBackend()
+
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
+	}
+	defer conn.Close()
+	client := svc.NewVolchestratorAdminClient(conn)
+
+	// create a volume
+	_, err = client.AddVolume(context.Background(), &svc.AddVolumeRequest{
+		Volume: &svc.Volume{
+			VolumeId: "foo",
+			Region:   "us-west-2",
+			Tag:      "foo",
+			Status:   svc.Volume_Available,
+		},
+	})
+	if err != nil {
+		t.Errorf("client.AddVolume() unexpected error = %v", err)
+	}
+
+	// update its statuses in a 'regular' lifecycle.
+	// each one of these should be a valid state tranistion
+	statuses := []svc.Volume_Status{
+		svc.Volume_Unavailable,
+		svc.Volume_Available,
+		svc.Volume_Attaching,
+		svc.Volume_Detaching,
+		svc.Volume_Available,
+		svc.Volume_Attaching,
+		svc.Volume_Attached,
+		svc.Volume_Detaching,
+	}
+
+	for _, status := range statuses {
+		_, err = client.UpdateVolume(context.Background(), &svc.UpdateVolumeRequest{
+			Volume: &svc.Volume{
+				VolumeId: "foo",
+				Status:   status,
+			},
+		})
+		if err != nil {
+			t.Errorf("client.UpdateVolume() unexpected error = %v", err)
+		}
+	}
+
+	// attempt to delete while still detaching
+	res, err := client.GetVolume(context.Background(), &svc.GetVolumeRequest{
+		VolumeId: "foo",
+	})
+	if err != nil {
+		t.Errorf("client.Get() unexpected error = %v", err)
+
+	}
+	if res.Volume.Status != svc.Volume_Detaching {
+		t.Errorf("client.Get() unexpected status = %v, want %v", err, svc.Volume_Detaching)
+	}
+
+	_, err = client.DeleteVolume(context.Background(), &svc.DeleteVolumeRequest{
+		Volume: &svc.Volume{
+			VolumeId: "foo",
+		},
+	})
+	if err == nil {
+		t.Errorf("client.Delete() expected error, got = %v", err)
+	}
+
+	// set as state from which we can delete
+	_, err = client.UpdateVolume(context.Background(), &svc.UpdateVolumeRequest{
+		Volume: &svc.Volume{
+			VolumeId: "foo",
+			Status:   svc.Volume_Unavailable,
+		},
+	})
+	if err != nil {
+		t.Errorf("client.UpdateVolume() unexpected error = %v", err)
+	}
+
+	// delete
+	_, err = client.DeleteVolume(context.Background(), &svc.DeleteVolumeRequest{
+		Volume: &svc.Volume{
+			VolumeId: "foo",
+		},
+	})
+	if err != nil {
+		t.Errorf("client.Delete() unexpected error = %v", err)
+	}
+
+	res, err = client.GetVolume(context.Background(), &svc.GetVolumeRequest{
+		VolumeId: "foo",
+	})
+	if err == nil {
+		t.Errorf("client.Get() expected error, got = %v", err)
+	}
+	if res != nil {
+		t.Errorf("client.Get() unexpected res = %v", res)
+	}
+
+	volumes, err := client.ListVolumes(context.Background(), &svc.ListVolumesRequest{})
+	if err != nil {
+		t.Errorf("client.List() unexpected error, got = %v", err)
+	}
+	if len(volumes.Volumes) != 0 {
+		t.Errorf("client.List() unexpected Volumes = %v", volumes)
+	}
+}

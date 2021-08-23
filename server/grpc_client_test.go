@@ -931,7 +931,7 @@ func Test_WatchNotifications(t *testing.T) {
 			defer conn.Close()
 			client := svc.NewVolchestratorClient(conn)
 
-			stream, err := client.WatchNotifications(tt.args.ctx, tt.args.req)
+			stream, _ := client.WatchNotifications(tt.args.ctx, tt.args.req)
 
 			notifications := []*svc.WatchNotificationsResponse{}
 			var e error
