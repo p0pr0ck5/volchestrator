@@ -15,6 +15,10 @@ type mockBase struct{}
 
 func (m *mockBase) Init() {}
 
+func (m *mockBase) Identifier() string {
+	return ""
+}
+
 func (m *mockBase) Validate() error {
 	return nil
 }

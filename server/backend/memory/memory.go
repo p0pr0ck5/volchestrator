@@ -1,21 +1,14 @@
 package memory
 
-import (
-	"fmt"
-)
-
-type dataMap interface {
-	Get(string) (interface{}, bool)
-	List() interface{}
-	Set(string, interface{})
-	Delete(string)
-}
+import "sync"
 
 type Memory struct {
 	ClientMap ClientMap
 	VolumeMap VolumeMap
 
 	notificationMap map[string]*ChQueue
+
+	l sync.RWMutex
 }
 
 func NewMemoryBackend() *Memory {
@@ -26,23 +19,4 @@ func NewMemoryBackend() *Memory {
 	}
 
 	return m
-}
-
-func (m *Memory) getMap(entityType string) dataMap {
-	var e dataMap
-
-	switch entityType {
-	case "client":
-		e = m.ClientMap
-	case "volume":
-		e = m.VolumeMap
-	default:
-		panic(fmt.Sprintf("invalid entity type %q", entityType))
-	}
-
-	return e
-}
-
-func (m *Memory) list(entityType string) interface{} {
-	return m.getMap(entityType).List()
 }

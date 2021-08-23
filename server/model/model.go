@@ -15,6 +15,7 @@ type Model struct {
 
 type Base interface {
 	Init()
+	Identifier() string
 	Validate() error
 	ValidateTransition(Base) error
 	SetStatus(string)

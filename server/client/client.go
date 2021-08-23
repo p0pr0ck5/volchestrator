@@ -58,6 +58,10 @@ func (c *Client) Init() {
 	}
 }
 
+func (c *Client) Identifier() string {
+	return c.ID
+}
+
 func (c *Client) Validate() error {
 	if c.ID == "" {
 		return newClientError("missing id")

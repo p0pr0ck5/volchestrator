@@ -96,6 +96,10 @@ func (v *Volume) Init() {
 	}
 }
 
+func (v *Volume) Identifier() string {
+	return v.ID
+}
+
 func (v *Volume) Validate() error {
 	if v.ID == "" {
 		return newVolumeError("missing id")

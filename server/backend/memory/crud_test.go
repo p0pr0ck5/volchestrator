@@ -414,3 +414,162 @@ func TestMemory_Delete(t *testing.T) {
 		})
 	}
 }
+
+func TestMemory_List(t *testing.T) {
+	type fields struct {
+		ClientMap       ClientMap
+		VolumeMap       VolumeMap
+		notificationMap map[string]*ChQueue
+	}
+	type args struct {
+		entityType string
+		entities   *[]model.Base
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *[]model.Base
+		wantErr bool
+	}{
+		{
+			"one client",
+			fields{
+				ClientMap: map[string]*client.Client{
+					"foo": {
+						ID: "foo",
+					},
+				},
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
+				},
+			},
+			args{
+				entityType: "client",
+				entities:   &[]model.Base{},
+			},
+			&[]model.Base{
+				&client.Client{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"two clients",
+			fields{
+				ClientMap: map[string]*client.Client{
+					"foo": {
+						ID: "foo",
+					},
+					"bar": {
+						ID: "bar",
+					},
+				},
+				notificationMap: map[string]*ChQueue{
+					"foo": MustNewChQueue(),
+				},
+			},
+			args{
+				entityType: "client",
+				entities:   &[]model.Base{},
+			},
+			&[]model.Base{
+				&client.Client{
+					ID: "bar",
+				},
+				&client.Client{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"zero clients",
+			fields{
+				ClientMap:       map[string]*client.Client{},
+				notificationMap: map[string]*ChQueue{},
+			},
+			args{
+				entityType: "client",
+				entities:   &[]model.Base{},
+			},
+			&[]model.Base{},
+			false,
+		},
+		{
+			"one volume",
+			fields{
+				VolumeMap: map[string]*volume.Volume{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entityType: "volume",
+				entities:   &[]model.Base{},
+			},
+			&[]model.Base{
+				&volume.Volume{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"two volumes",
+			fields{
+				VolumeMap: map[string]*volume.Volume{
+					"foo": {
+						ID: "foo",
+					},
+					"bar": {
+						ID: "bar",
+					},
+				},
+			},
+			args{
+				entityType: "volume",
+				entities:   &[]model.Base{},
+			},
+			&[]model.Base{
+				&volume.Volume{
+					ID: "bar",
+				},
+				&volume.Volume{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"zero volumes",
+			fields{
+				VolumeMap: map[string]*volume.Volume{},
+			},
+			args{
+				entityType: "volume",
+				entities:   &[]model.Base{},
+			},
+			&[]model.Base{},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Memory{
+				ClientMap:       tt.fields.ClientMap,
+				VolumeMap:       tt.fields.VolumeMap,
+				notificationMap: tt.fields.notificationMap,
+			}
+			if err := m.List(tt.args.entityType, tt.args.entities); (err != nil) != tt.wantErr {
+				t.Errorf("Memory.List() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(tt.args.entities, tt.want) {
+				t.Errorf("Memory.List() = %v, want %v", tt.args.entities, tt.want)
+
+			}
+		})
+	}
+}

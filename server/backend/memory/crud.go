@@ -3,10 +3,12 @@ package memory
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/model"
+	"github.com/pkg/errors"
 )
 
 type post_op func(*Memory, model.Base) error
@@ -36,26 +38,18 @@ var post_op_map = map[string]post_op{
 	},
 }
 
-func (m *Memory) read(id, entityType string) (interface{}, error) {
-	entity, exists := m.getMap(entityType).Get(id)
-	if !exists {
-		return nil, fmt.Errorf("%s %q not found", entityType, id)
-	}
-
-	return entity, nil
-}
-
 func (m *Memory) crud(op string, entity model.Base) error {
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
 
-	id := reflect.ValueOf(entity).Elem().FieldByName("ID").Interface().(string)
+	id := entity.Identifier()
 
-	_, err := m.read(id, strings.ToLower(entityType))
+	_, err := m.Read(entity)
 	exists := err == nil
 
-	dataMap := reflect.ValueOf(m).Elem().FieldByName(entityType + "Map")
-	var fn string
-	var args []reflect.Value
+	dMap := reflect.ValueOf(m).Elem().FieldByName(entityType + "Map")
+
+	m.l.Lock()
+	defer m.l.Unlock()
 
 	switch op {
 	case "Create":
@@ -63,30 +57,20 @@ func (m *Memory) crud(op string, entity model.Base) error {
 			return fmt.Errorf("%s %q already exists", entityType, id)
 		}
 
-		fn = "Set"
-		args = []reflect.Value{reflect.ValueOf(id), reflect.ValueOf(entity)}
+		dMap.SetMapIndex(reflect.ValueOf(id), reflect.ValueOf(entity))
 	case "Update":
 		if !exists {
 			return fmt.Errorf("%s %q already exists", entityType, id)
 		}
 
-		fn = "Set"
-		args = []reflect.Value{reflect.ValueOf(id), reflect.ValueOf(entity)}
+		dMap.SetMapIndex(reflect.ValueOf(id), reflect.ValueOf(entity))
 	case "Delete":
 		if !exists {
 			return fmt.Errorf("%s %q already exists", entityType, id)
 		}
 
-		fn = "Delete"
-		args = []reflect.Value{reflect.ValueOf(id)}
+		dMap.SetMapIndex(reflect.ValueOf(id), reflect.Value{})
 	}
-
-	ff := dataMap.MethodByName(fn)
-	if !ff.IsValid() {
-		return fmt.Errorf("unsupported type %q", entityType)
-	}
-
-	ff.Call(args)
 
 	if postFunc, ok := post_op_map[op+entityType]; ok {
 		postFunc(m, entity)
@@ -100,16 +84,20 @@ func (m *Memory) Create(entity model.Base) error {
 }
 
 func (m *Memory) Read(entity model.Base) (model.Base, error) {
+	m.l.RLock()
+	defer m.l.RUnlock()
+
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
 
-	id := reflect.ValueOf(entity).Elem().FieldByName("ID").Interface().(string)
-	res, err := m.read(id, strings.ToLower(entityType))
+	id := entity.Identifier()
+	dMap := reflect.ValueOf(m).Elem().FieldByName(entityType + "Map")
 
-	if err != nil {
-		return nil, err
-	} else {
-		return res.(model.Base), err
+	res := dMap.MapIndex(reflect.ValueOf(id))
+	if !res.IsValid() {
+		return nil, errors.New("not found")
 	}
+
+	return res.Interface().(model.Base), nil
 }
 
 func (m *Memory) Update(entity model.Base) error {
@@ -121,30 +109,20 @@ func (m *Memory) Delete(entity model.Base) error {
 }
 
 func (m *Memory) List(entityType string, entities *[]model.Base) error {
-	switch entityType {
-	case "client":
-		clients, err := m.ListClients()
-		if err != nil {
-			return err
-		}
+	m.l.RLock()
+	defer m.l.RUnlock()
 
-		for _, client := range clients {
-			*entities = append(*entities, client)
-		}
+	dMap := reflect.ValueOf(m).Elem().FieldByName(strings.Title(entityType) + "Map")
 
-		return nil
-	case "volume":
-		volumes, err := m.ListVolumes()
-		if err != nil {
-			return err
-		}
-
-		for _, volume := range volumes {
-			*entities = append(*entities, volume)
-		}
-
-		return nil
-	default:
-		return fmt.Errorf("unsupported type %q", entityType)
+	iter := dMap.MapRange()
+	for iter.Next() {
+		v := iter.Value().Interface().(model.Base)
+		*entities = append(*entities, v)
 	}
+
+	sort.Slice(*entities, func(i, j int) bool {
+		return (*entities)[i].Identifier() < (*entities)[j].Identifier()
+	})
+
+	return nil
 }
