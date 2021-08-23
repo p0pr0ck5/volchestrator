@@ -53,7 +53,7 @@ func (b *Backend) Update(entity model.Base) error {
 	i := reflect.ValueOf(entity).Elem().FieldByName("Status")
 	reflect.ValueOf(&s).Elem().Set(i)
 
-	if err := entity.F().Transition(s); err != nil {
+	if err := entity.F().Transition(s, entity); err != nil {
 		return err
 	}
 
