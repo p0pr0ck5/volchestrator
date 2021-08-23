@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/pkg/errors"
 )
@@ -19,19 +18,19 @@ var post_op_map = map[string]post_op{
 			return err
 		}
 
-		m.notificationMap[entity.(*client.Client).ID] = queue
+		m.notificationMap[entity.Identifier()] = queue
 
 		return nil
 	},
 
 	"DeleteClient": func(m *Memory, entity model.Base) error {
-		client := entity.(*client.Client)
+		id := entity.Identifier()
 
-		queue := m.notificationMap[client.ID]
+		queue := m.notificationMap[id]
 		if err := queue.Close(); err != nil {
 			return err
 		}
-		delete(m.notificationMap, client.ID)
+		delete(m.notificationMap, id)
 
 		return nil
 	},
