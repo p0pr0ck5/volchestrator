@@ -51,7 +51,7 @@ func (s *Server) PruneClients() error {
 	var errs *multierror.Error
 
 	clients := []model.Base{}
-	if err := s.b.List("client", &clients); err != nil {
+	if err := s.b.List("Client", &clients); err != nil {
 		errs = multierror.Append(err)
 		return errs
 	}

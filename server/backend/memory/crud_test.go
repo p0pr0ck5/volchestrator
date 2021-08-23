@@ -445,7 +445,7 @@ func TestMemory_List(t *testing.T) {
 				},
 			},
 			args{
-				entityType: "client",
+				entityType: "Client",
 				entities:   &[]model.Base{},
 			},
 			&[]model.Base{
@@ -471,7 +471,7 @@ func TestMemory_List(t *testing.T) {
 				},
 			},
 			args{
-				entityType: "client",
+				entityType: "Client",
 				entities:   &[]model.Base{},
 			},
 			&[]model.Base{
@@ -491,7 +491,7 @@ func TestMemory_List(t *testing.T) {
 				notificationMap: map[string]*ChQueue{},
 			},
 			args{
-				entityType: "client",
+				entityType: "Client",
 				entities:   &[]model.Base{},
 			},
 			&[]model.Base{},
@@ -507,7 +507,7 @@ func TestMemory_List(t *testing.T) {
 				},
 			},
 			args{
-				entityType: "volume",
+				entityType: "Volume",
 				entities:   &[]model.Base{},
 			},
 			&[]model.Base{
@@ -530,7 +530,7 @@ func TestMemory_List(t *testing.T) {
 				},
 			},
 			args{
-				entityType: "volume",
+				entityType: "Volume",
 				entities:   &[]model.Base{},
 			},
 			&[]model.Base{
@@ -549,7 +549,7 @@ func TestMemory_List(t *testing.T) {
 				VolumeMap: map[string]*volume.Volume{},
 			},
 			args{
-				entityType: "volume",
+				entityType: "Volume",
 				entities:   &[]model.Base{},
 			},
 			&[]model.Base{},

@@ -225,7 +225,7 @@ func (m *MockBackend) Delete(entity model.Base) error {
 
 func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 	switch entityType {
-	case "client":
+	case "Client":
 		clients, err := m.ListClients()
 		if err != nil {
 			return err
@@ -236,7 +236,7 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 		}
 
 		return nil
-	case "volume":
+	case "Volume":
 		volumes, err := m.ListVolumes()
 		if err != nil {
 			return err

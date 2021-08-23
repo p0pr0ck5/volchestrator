@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strings"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/model"
@@ -38,6 +37,10 @@ var post_op_map = map[string]post_op{
 	},
 }
 
+func (m *Memory) getMap(entityType string) reflect.Value {
+	return reflect.ValueOf(m).Elem().FieldByName(entityType + "Map")
+}
+
 func (m *Memory) crud(op string, entity model.Base) error {
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
 
@@ -46,7 +49,7 @@ func (m *Memory) crud(op string, entity model.Base) error {
 	_, err := m.Read(entity)
 	exists := err == nil
 
-	dMap := reflect.ValueOf(m).Elem().FieldByName(entityType + "Map")
+	dMap := m.getMap(entityType)
 
 	m.l.Lock()
 	defer m.l.Unlock()
@@ -90,7 +93,7 @@ func (m *Memory) Read(entity model.Base) (model.Base, error) {
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
 
 	id := entity.Identifier()
-	dMap := reflect.ValueOf(m).Elem().FieldByName(entityType + "Map")
+	dMap := m.getMap(entityType)
 
 	res := dMap.MapIndex(reflect.ValueOf(id))
 	if !res.IsValid() {
@@ -112,7 +115,7 @@ func (m *Memory) List(entityType string, entities *[]model.Base) error {
 	m.l.RLock()
 	defer m.l.RUnlock()
 
-	dMap := reflect.ValueOf(m).Elem().FieldByName(strings.Title(entityType) + "Map")
+	dMap := m.getMap(entityType)
 
 	iter := dMap.MapRange()
 	for iter.Next() {

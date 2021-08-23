@@ -180,7 +180,7 @@ func TestServer_PruneClients(t *testing.T) {
 			}
 
 			clients := []model.Base{}
-			s.b.List("client", &clients)
+			s.b.List("Client", &clients)
 
 			c := []*client.Client{}
 			for _, cc := range clients {

@@ -33,7 +33,7 @@ func (s *Server) GetClient(ctx context.Context, req *svc.GetClientRequest) (*svc
 
 func (s *Server) ListClients(ctx context.Context, req *svc.ListClientsRequest) (*svc.ListClientsResponse, error) {
 	clients := []model.Base{}
-	if err := s.b.List("client", &clients); err != nil {
+	if err := s.b.List("Client", &clients); err != nil {
 		return nil, err
 	}
 
@@ -68,7 +68,7 @@ func (s *Server) GetVolume(ctx context.Context, req *svc.GetVolumeRequest) (*svc
 
 func (s *Server) ListVolumes(ctx context.Context, req *svc.ListVolumesRequest) (*svc.ListVolumesReponse, error) {
 	volumes := []model.Base{}
-	if err := s.b.List("volume", &volumes); err != nil {
+	if err := s.b.List("Volume", &volumes); err != nil {
 		return nil, err
 	}
 

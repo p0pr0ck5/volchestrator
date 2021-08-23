@@ -71,8 +71,8 @@ func TestWithMemoryBackend(t *testing.T) {
 
 			l1 := []model.Base{}
 			l2 := []model.Base{}
-			s1.b.List("client", &l1)
-			s2.b.List("client", &l2)
+			s1.b.List("Client", &l1)
+			s2.b.List("Client", &l2)
 			if (len(l1) == len(l2)) != tt.wantEqual {
 				t.Errorf("s1.b == s2.b = %v, want %v", s1.b == s2.b, tt.wantEqual)
 			}
