@@ -247,9 +247,26 @@ func TestBackend_Create(t *testing.T) {
 			},
 			args{
 				entity: &leaserequest.LeaseRequest{
-					ID:     "foo",
-					Region: "us-west-2",
-					Tag:    "foo",
+					ID:       "foo",
+					ClientID: "foo",
+					Region:   "us-west-2",
+					Tag:      "foo",
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease request - bad client reference",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:       "foo",
+					ClientID: "bar",
+					Region:   "us-west-2",
+					Tag:      "foo",
+					Status:   leaserequest.Pending,
 				},
 			},
 			true,

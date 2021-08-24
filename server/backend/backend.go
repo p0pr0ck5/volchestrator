@@ -13,6 +13,7 @@ type backend interface {
 	Update(model.Base) error
 	Delete(model.Base) error
 	List(string, *[]model.Base) error
+	Find(string, string) model.Base
 
 	WriteNotification(*notification.Notification) error
 	GetNotifications(string) (<-chan *notification.Notification, error)

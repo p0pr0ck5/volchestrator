@@ -155,3 +155,11 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 
 	return nil
 }
+
+func (m *MockBackend) Find(entityType, id string) model.Base {
+	e := mocks[entityType]
+	if e.Identifier() == id {
+		return e
+	}
+	return nil
+}

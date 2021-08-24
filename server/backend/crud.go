@@ -27,12 +27,20 @@ func (b *Backend) Create(entity model.Base) error {
 
 		// required check
 		for _, s := range modelTags {
-			if s != "required" {
-				continue
+			if s == "required" {
+				if fieldVal.IsZero() {
+					return fmt.Errorf("validate error (required): %q", fieldVal)
+				}
 			}
 
-			if fieldVal.IsZero() {
-				return fmt.Errorf("validate error (required): %q", fieldVal)
+			if strings.Contains(s, "reference") {
+				v := strings.Split(s, "=")[1]
+				e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
+
+				ee := b.b.Find(e, fieldVal.Interface().(string))
+				if ee == nil {
+					return fmt.Errorf("missing reference %v:%v", entity, key)
+				}
 			}
 		}
 	}

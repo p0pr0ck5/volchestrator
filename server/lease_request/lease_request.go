@@ -64,7 +64,7 @@ type LeaseRequest struct {
 	model.Model
 
 	ID       string `model:"immutable,required"`
-	ClientID string `model:"immutable,required"`
+	ClientID string `model:"immutable,required,reference=Client:ID"`
 	Region   string `model:"immutable,required"`
 	Tag      string `model:"immutable,required"`
 	Status   Status `model:"required"`

@@ -131,3 +131,12 @@ func (m *Memory) List(entityType string, entities *[]model.Base) error {
 
 	return nil
 }
+
+func (m *Memory) Find(entityType, id string) model.Base {
+	res := m.getMap(entityType).MapIndex(reflect.ValueOf(id))
+	if !res.IsValid() {
+		return nil
+	}
+
+	return res.Interface().(model.Base)
+}
