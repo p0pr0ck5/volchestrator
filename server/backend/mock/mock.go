@@ -106,6 +106,10 @@ func (m *MockBackend) Read(entity model.Base) (model.Base, error) {
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
 	id := entity.Identifier()
 
+	if id == "" {
+		return nil, errors.New("missing")
+	}
+
 	if id == "bad" {
 		return nil, errors.New("error")
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/p0pr0ck5/volchestrator/fsm"
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
@@ -105,6 +106,7 @@ func TestBackend_Create(t *testing.T) {
 					ID:     "foo",
 					Region: "us-west-2",
 					Tag:    "bar",
+					Status: volume.Available,
 				},
 			},
 			false,
@@ -158,6 +160,96 @@ func TestBackend_Create(t *testing.T) {
 					ID:     "bad",
 					Region: "us-west-2",
 					Tag:    "bar",
+				},
+			},
+			true,
+		},
+		{
+			"valid lease request",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:       "foo",
+					ClientID: "foo",
+					Region:   "us-west-2",
+					Tag:      "foo",
+					Status:   leaserequest.Pending,
+				},
+			},
+			false,
+		},
+		{
+			"invalid lease request - missing id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ClientID: "foo",
+					Region:   "us-west-2",
+					Tag:      "foo",
+					Status:   leaserequest.Pending,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease request - missing client id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:     "foo",
+					Region: "us-west-2",
+					Tag:    "foo",
+					Status: leaserequest.Pending,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease request - missing region",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:       "foo",
+					ClientID: "foo",
+					Tag:      "foo",
+					Status:   leaserequest.Pending,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease request - missing tag",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:       "foo",
+					ClientID: "foo",
+					Region:   "us-west-2",
+					Status:   leaserequest.Pending,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease request - missing status",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:     "foo",
+					Region: "us-west-2",
+					Tag:    "foo",
 				},
 			},
 			true,
@@ -473,6 +565,82 @@ func TestBackend_Update(t *testing.T) {
 			args{
 				entity: &volume.Volume{
 					ID: "bad",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"valid lease request - no-op",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:     "foo",
+					Status: leaserequest.Pending,
+				},
+			},
+			&leaserequest.LeaseRequest{
+				ID:       "foo",
+				ClientID: "foo",
+				Region:   "us-west-2",
+				Tag:      "foo",
+				Status:   leaserequest.Pending,
+			},
+			false,
+		},
+		{
+			"invalid lease request - change client id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:       "foo",
+					ClientID: "bar",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - change region",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:     "foo",
+					Region: "eu-west-1",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - change tag",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:  "foo",
+					Tag: "bar",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - invalid status",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:     "foo",
+					Status: leaserequest.Fulfilled,
 				},
 			},
 			nil,

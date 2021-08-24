@@ -63,11 +63,11 @@ var sm = fsm.TransitionMap{
 type LeaseRequest struct {
 	model.Model
 
-	ID       string
-	ClientID string
-	Region   string
-	Tag      string
-	Status   Status
+	ID       string `model:"immutable,required"`
+	ClientID string `model:"immutable,required"`
+	Region   string `model:"immutable,required"`
+	Tag      string `model:"immutable,required"`
+	Status   Status `model:"required"`
 }
 
 func (l *LeaseRequest) Init() {
@@ -82,52 +82,10 @@ func (l *LeaseRequest) Identifier() string {
 }
 
 func (l *LeaseRequest) Validate() error {
-	if l.ID == "" {
-		return newLeaseRequestError("missing id")
-	}
-
-	if l.ClientID == "" {
-		return newLeaseRequestError("missing client id")
-	}
-
-	if l.Region == "" {
-		return newLeaseRequestError("missing region")
-	}
-
-	if l.Tag == "" {
-		return newLeaseRequestError("missing tag")
-	}
-
-	if l.Status == unused {
-		return newLeaseRequestError("invalid status")
-	}
-
 	return nil
 }
 
 func (l *LeaseRequest) ValidateTransition(m model.Base) error {
-	newLeaseRequest := m.(*LeaseRequest)
-
-	if l.ID != newLeaseRequest.ID {
-		return newLeaseRequestError("cannot change id")
-	}
-
-	if l.ClientID != newLeaseRequest.ClientID {
-		return newLeaseRequestError("cannot change client id")
-	}
-
-	if l.Region != newLeaseRequest.Region {
-		return newLeaseRequestError("cannot change region")
-	}
-
-	if l.Tag != newLeaseRequest.Tag {
-		return newLeaseRequestError("cannot change tag")
-	}
-
-	if !l.FSM.Can(newLeaseRequest.Status) {
-		return newLeaseRequestError("invalid status transition")
-	}
-
 	return nil
 }
 

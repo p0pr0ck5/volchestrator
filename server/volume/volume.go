@@ -83,10 +83,10 @@ var sm = fsm.TransitionMap{
 type Volume struct {
 	model.Model
 
-	ID     string
-	Region string
-	Tag    string
-	Status Status
+	ID     string `model:"immutable,required"`
+	Region string `model:"required"`
+	Tag    string `model:"required"`
+	Status Status `model:"required"`
 }
 
 func (v *Volume) Init() {
@@ -101,36 +101,16 @@ func (v *Volume) Identifier() string {
 }
 
 func (v *Volume) Validate() error {
-	if v.ID == "" {
-		return newVolumeError("missing id")
-	}
-
-	if v.Region == "" {
-		return newVolumeError("missing region")
-	}
-
-	if v.Tag == "" {
-		return newVolumeError("missing tag")
-	}
-
 	return nil
 }
 
 func (v *Volume) ValidateTransition(m model.Base) error {
 	newVolume := m.(*Volume)
 
-	if v.ID != newVolume.ID {
-		return newVolumeError("cannot change id")
-	}
-
 	if v.Status != Available && v.Status != Unavailable {
 		if v.Region != newVolume.Region || v.Tag != newVolume.Tag {
 			return newVolumeError("cannot change region or tag in current state")
 		}
-	}
-
-	if !v.FSM.Can(newVolume.Status) {
-		return newVolumeError("invalid status transition")
 	}
 
 	return nil

@@ -1,7 +1,9 @@
 package backend
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/fsm"
@@ -13,6 +15,26 @@ func (b *Backend) Create(entity model.Base) error {
 
 	if err := entity.Validate(); err != nil {
 		return err
+	}
+
+	// struct validation
+	entityType := reflect.TypeOf(entity).Elem()
+	for i := 0; i < entityType.NumField(); i++ {
+		field := entityType.Field(i)
+		fieldVal := reflect.ValueOf(entity).Elem().Field(i)
+
+		modelTags := strings.Split(field.Tag.Get("model"), ",")
+
+		// required check
+		for _, s := range modelTags {
+			if s != "required" {
+				continue
+			}
+
+			if fieldVal.IsZero() {
+				return fmt.Errorf("validate error (required): %q", fieldVal)
+			}
+		}
 	}
 
 	now := time.Now()
@@ -49,9 +71,35 @@ func (b *Backend) Update(entity model.Base) error {
 		return err
 	}
 
+	// struct validation
+	entityType := reflect.TypeOf(entity).Elem()
+	for i := 0; i < entityType.NumField(); i++ {
+		field := entityType.Field(i)
+		fieldVal := reflect.ValueOf(entity).Elem().Field(i).Interface()
+		newFieldVal := reflect.ValueOf(f).Elem().Field(i).Interface()
+
+		modelTags := strings.Split(field.Tag.Get("model"), ",")
+
+		// immutable check
+		for _, s := range modelTags {
+			if s != "immutable" {
+				continue
+			}
+
+			if fieldVal != newFieldVal {
+				return fmt.Errorf("validate error (immutable): %q != %q", fieldVal, newFieldVal)
+			}
+		}
+	}
+
 	var s fsm.State
 	i := reflect.ValueOf(entity).Elem().FieldByName("Status")
 	reflect.ValueOf(&s).Elem().Set(i)
+
+	if can := f.F().Can(s); !can {
+		return fmt.Errorf("invalid state transition %q", s)
+	}
+
 	if err := entity.F().Transition(s, entity); err != nil {
 		return err
 	}

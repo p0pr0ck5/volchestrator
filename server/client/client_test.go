@@ -29,20 +29,6 @@ func TestClient_Validate(t *testing.T) {
 			},
 			false,
 		},
-		{
-			"invalid client - missing id",
-			fields{
-				Token: "mock",
-			},
-			true,
-		},
-		{
-			"invalid client - missing token",
-			fields{
-				ID: "foo",
-			},
-			true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -106,19 +92,6 @@ func TestClient_ValidateTransition(t *testing.T) {
 				},
 			},
 			false,
-		},
-		{
-			"invalid transition - id change",
-			fields{
-				ID:    "foo",
-				Token: "mock",
-			},
-			args{
-				newClient: &Client{
-					ID: "bar",
-				},
-			},
-			true,
 		},
 	}
 	for _, tt := range tests {

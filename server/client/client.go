@@ -44,8 +44,8 @@ var sm = fsm.TransitionMap{
 type Client struct {
 	model.Model
 
-	ID         string
-	Token      string `proto:"ignore"`
+	ID         string `model:"immutable,required"`
+	Token      string `proto:"ignore" model:"required"`
 	Status     Status
 	Registered time.Time
 	LastSeen   time.Time
@@ -63,28 +63,10 @@ func (c *Client) Identifier() string {
 }
 
 func (c *Client) Validate() error {
-	if c.ID == "" {
-		return newClientError("missing id")
-	}
-
-	if c.Token == "" {
-		return newClientError("missing token")
-	}
-
 	return nil
 }
 
 func (c *Client) ValidateTransition(m model.Base) error {
-	newClient := m.(*Client)
-
-	if c.ID != newClient.ID {
-		return newClientError("cannot change id")
-	}
-
-	if !c.FSM.Can(newClient.Status) {
-		return newClientError("invalid status transition")
-	}
-
 	return nil
 }
 
