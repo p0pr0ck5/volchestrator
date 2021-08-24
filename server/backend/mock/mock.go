@@ -2,7 +2,6 @@ package mock
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -11,6 +10,29 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
+
+var mocks = map[string]model.Base{
+	"Client": &client.Client{
+		ID:         "foo",
+		Token:      "mock",
+		Registered: nowIsh(),
+		LastSeen:   nowIsh(),
+
+		Model: model.Model{
+			CreatedAt: nowIsh(),
+		},
+	},
+	"Volume": &volume.Volume{
+		ID:     "foo",
+		Region: "us-west-2",
+		Tag:    "foo",
+		Status: volume.Unavailable,
+
+		Model: model.Model{
+			CreatedAt: nowIsh(),
+		},
+	},
+}
 
 func nowIsh() time.Time {
 	t := time.Now()
@@ -22,128 +44,12 @@ func NowIsh() time.Time {
 }
 
 type MockBackend struct {
-	ClientLister func() ([]*client.Client, error)
-	VolumeLister func() ([]*volume.Volume, error)
+	ClientLister func() ([]model.Base, error)
+	VolumeLister func() ([]model.Base, error)
 }
 
 func NewMockBackend() *MockBackend {
 	return &MockBackend{}
-}
-
-func (m *MockBackend) ReadClient(id string) (*client.Client, error) {
-	if id == "bad" {
-		return nil, errors.New("error")
-	}
-
-	c := &client.Client{
-		ID:         id,
-		Token:      "mock",
-		Registered: nowIsh(),
-		LastSeen:   nowIsh(),
-
-		Model: model.Model{
-			CreatedAt: nowIsh(),
-		},
-	}
-	c.Init()
-
-	return c, nil
-}
-
-func (m *MockBackend) ListClients() ([]*client.Client, error) {
-	if m.ClientLister != nil {
-		return m.ClientLister()
-	}
-
-	return []*client.Client{
-		{
-			ID:         "foo",
-			Registered: nowIsh(),
-			LastSeen:   nowIsh(),
-		},
-	}, nil
-}
-
-func (m *MockBackend) CreateClient(c *client.Client) error {
-	if c.ID == "bad" {
-		return errors.New("error")
-	}
-
-	return nil
-}
-
-func (m *MockBackend) UpdateClient(c *client.Client) error {
-	if c.ID == "bad" {
-		return errors.New("error")
-	}
-
-	return nil
-}
-
-func (m *MockBackend) DeleteClient(c *client.Client) error {
-	if c.ID == "bad" {
-		return errors.New("error")
-	}
-
-	return nil
-}
-
-func (m *MockBackend) ReadVolume(id string) (*volume.Volume, error) {
-	if id == "bad" {
-		return nil, errors.New("error")
-	}
-
-	v := &volume.Volume{
-		ID:     id,
-		Region: "us-west-2",
-		Tag:    "foo",
-		Status: volume.Unavailable,
-
-		Model: model.Model{
-			CreatedAt: nowIsh(),
-		},
-	}
-	v.Init()
-
-	return v, nil
-}
-
-func (m *MockBackend) ListVolumes() ([]*volume.Volume, error) {
-	if m.VolumeLister != nil {
-		return m.VolumeLister()
-	}
-
-	return []*volume.Volume{
-		{
-			ID:     "foo",
-			Region: "us-west-2",
-			Tag:    "foo",
-		},
-	}, nil
-}
-
-func (m *MockBackend) CreateVolume(v *volume.Volume) error {
-	if v.ID == "bad" {
-		return errors.New("error")
-	}
-
-	return nil
-}
-
-func (m *MockBackend) UpdateVolume(v *volume.Volume) error {
-	if v.ID == "bad" {
-		return errors.New("error")
-	}
-
-	return nil
-}
-
-func (m *MockBackend) DeleteVolume(v *volume.Volume) error {
-	if v.ID == "bad" {
-		return errors.New("error")
-	}
-
-	return nil
 }
 
 func (m *MockBackend) WriteNotification(n *notification.Notification) error {
@@ -167,24 +73,17 @@ func (m *MockBackend) GetNotifications(id string) (<-chan *notification.Notifica
 
 func (m *MockBackend) crud(op string, entity model.Base) error {
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
+	id := entity.Identifier()
 
-	fnName := op + entityType
-
-	ff := reflect.ValueOf(m).MethodByName(fnName)
-
-	if !ff.IsValid() {
-		return fmt.Errorf("unsupported type %q", entityType)
+	if id == "bad" {
+		return errors.New("error")
 	}
 
-	res := ff.Call([]reflect.Value{
-		reflect.ValueOf(entity),
-	})
-
-	if err, ok := res[0].Interface().(error); ok {
-		return err
-	} else {
-		return nil
+	if _, ok := mocks[entityType]; !ok {
+		return errors.New("unsupported")
 	}
+
+	return nil
 }
 
 func (m *MockBackend) Create(entity model.Base) error {
@@ -193,26 +92,21 @@ func (m *MockBackend) Create(entity model.Base) error {
 
 func (m *MockBackend) Read(entity model.Base) (model.Base, error) {
 	entityType := reflect.ValueOf(entity).Elem().Type().Name()
+	id := entity.Identifier()
 
-	fnName := "Read" + entityType
-
-	ff := reflect.ValueOf(m).MethodByName(fnName)
-
-	if !ff.IsValid() {
-		return nil, fmt.Errorf("unsupported type %q", entityType)
+	if id == "bad" {
+		return nil, errors.New("error")
 	}
 
-	id := reflect.ValueOf(entity).Elem().FieldByName("ID")
-
-	res := ff.Call([]reflect.Value{
-		id,
-	})
-
-	if err, ok := res[1].Interface().(error); ok {
-		return nil, err
-	} else {
-		return res[0].Interface().(model.Base), nil
+	e := mocks[entityType]
+	if e == nil {
+		return nil, errors.New("unsupported")
 	}
+	reflect.ValueOf(e).Elem().FieldByName("ID").Set(reflect.ValueOf(id))
+
+	e.Init()
+
+	return e, nil
 }
 
 func (m *MockBackend) Update(entity model.Base) error {
@@ -224,30 +118,24 @@ func (m *MockBackend) Delete(entity model.Base) error {
 }
 
 func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
-	switch entityType {
-	case "Client":
-		clients, err := m.ListClients()
-		if err != nil {
-			return err
+	fn := entityType + "Lister"
+	f := reflect.ValueOf(m).Elem().FieldByName(fn)
+	if f.IsValid() && !f.IsNil() {
+		res := f.Call([]reflect.Value{})
+		if e, ok := res[1].Interface().(error); ok {
+			return e
+		} else {
+			ee := res[0].Interface().([]model.Base)
+			*entities = append(*entities, ee...)
 		}
-
-		for _, client := range clients {
-			*entities = append(*entities, client)
-		}
-
-		return nil
-	case "Volume":
-		volumes, err := m.ListVolumes()
-		if err != nil {
-			return err
-		}
-
-		for _, volume := range volumes {
-			*entities = append(*entities, volume)
-		}
-
-		return nil
-	default:
-		return fmt.Errorf("unsupported type %q", entityType)
 	}
+
+	e, ok := mocks[entityType]
+	if !ok {
+		return errors.New("unsupported")
+	}
+
+	*entities = append(*entities, e)
+
+	return nil
 }

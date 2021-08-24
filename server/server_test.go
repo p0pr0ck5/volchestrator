@@ -198,14 +198,14 @@ func TestServer_PruneClientsReturn(t *testing.T) {
 
 	mockThen := time.Now().Add(time.Second * -ttl)
 
-	lister := func(s string) func() ([]*client.Client, error) {
-		return func() ([]*client.Client, error) {
+	lister := func(s string) func() ([]model.Base, error) {
+		return func() ([]model.Base, error) {
 			if s == "" {
 				return nil, errors.New("bad")
 			}
 
-			return []*client.Client{
-				{
+			return []model.Base{
+				&client.Client{
 					ID:         s,
 					Registered: mockThen,
 					LastSeen:   mockThen,
@@ -216,7 +216,7 @@ func TestServer_PruneClientsReturn(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		lister  func() ([]*client.Client, error)
+		lister  func() ([]model.Base, error)
 		wantErr bool
 	}{
 		{
