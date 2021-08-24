@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
@@ -27,6 +28,17 @@ var mocks = map[string]model.Base{
 		Region: "us-west-2",
 		Tag:    "foo",
 		Status: volume.Unavailable,
+
+		Model: model.Model{
+			CreatedAt: nowIsh(),
+		},
+	},
+	"LeaseRequest": &leaserequest.LeaseRequest{
+		ID:       "foo",
+		ClientID: "foo",
+		Region:   "us-west-2",
+		Tag:      "foo",
+		Status:   leaserequest.Pending,
 
 		Model: model.Model{
 			CreatedAt: nowIsh(),
