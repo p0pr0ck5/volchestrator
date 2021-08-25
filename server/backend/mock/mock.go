@@ -12,6 +12,16 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
+type BackendOpt func(*MockBackend) error
+
+func WithMocks(mocks map[string]model.Base) BackendOpt {
+	return func(m *MockBackend) error {
+		m.mocks = mocks
+
+		return nil
+	}
+}
+
 var mocks = map[string]model.Base{
 	"Client": &client.Client{
 		ID:         "foo",
@@ -58,10 +68,24 @@ func NowIsh() time.Time {
 type MockBackend struct {
 	ClientLister func() ([]model.Base, error)
 	VolumeLister func() ([]model.Base, error)
+
+	mocks map[string]model.Base
 }
 
-func NewMockBackend() *MockBackend {
-	return &MockBackend{}
+func NewMockBackend(opts ...BackendOpt) *MockBackend {
+	m := &MockBackend{
+		mocks: mocks,
+	}
+
+	for _, opt := range opts {
+		opt(m)
+	}
+
+	return m
+}
+
+func (m *MockBackend) SetMocks(mocks map[string]model.Base) {
+	m.mocks = mocks
 }
 
 func (m *MockBackend) WriteNotification(n *notification.Notification) error {
@@ -91,7 +115,7 @@ func (m *MockBackend) crud(op string, entity model.Base) error {
 		return errors.New("error")
 	}
 
-	if _, ok := mocks[entityType]; !ok {
+	if _, ok := m.mocks[entityType]; !ok {
 		return errors.New("unsupported")
 	}
 
@@ -114,7 +138,7 @@ func (m *MockBackend) Read(entity model.Base) (model.Base, error) {
 		return nil, errors.New("error")
 	}
 
-	e := mocks[entityType]
+	e := m.mocks[entityType]
 	if e == nil {
 		return nil, errors.New("unsupported")
 	}
@@ -146,7 +170,7 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 		}
 	}
 
-	e, ok := mocks[entityType]
+	e, ok := m.mocks[entityType]
 	if !ok {
 		return errors.New("unsupported")
 	}
@@ -156,10 +180,11 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 	return nil
 }
 
-func (m *MockBackend) Find(entityType, id string) model.Base {
-	e := mocks[entityType]
-	if e.Identifier() == id {
-		return e
+func (m *MockBackend) Find(entityType, fieldName, id string) []model.Base {
+	e := m.mocks[entityType]
+	f := reflect.ValueOf(e).Elem().FieldByName(fieldName).Interface().(string)
+	if f == id {
+		return []model.Base{e}
 	}
 	return nil
 }

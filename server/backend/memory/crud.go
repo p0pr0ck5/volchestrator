@@ -132,11 +132,16 @@ func (m *Memory) List(entityType string, entities *[]model.Base) error {
 	return nil
 }
 
-func (m *Memory) Find(entityType, id string) model.Base {
-	res := m.getMap(entityType).MapIndex(reflect.ValueOf(id))
-	if !res.IsValid() {
-		return nil
+func (m *Memory) Find(entityType, fieldName, id string) []model.Base {
+	entites := []model.Base{}
+	iter := m.getMap(entityType).MapRange()
+	for iter.Next() {
+		v := iter.Value().Interface().(model.Base)
+		f := reflect.ValueOf(v).Elem().FieldByName(fieldName).Interface().(string)
+		if f == id {
+			entites = append(entites, v)
+		}
 	}
 
-	return res.Interface().(model.Base)
+	return entites
 }

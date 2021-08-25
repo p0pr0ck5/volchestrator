@@ -33,12 +33,12 @@ func (b *Backend) Create(entity model.Base) error {
 				}
 			}
 
-			if strings.Contains(s, "reference") {
+			if strings.Contains(s, "depends") {
 				v := strings.Split(s, "=")[1]
 				e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
 
-				ee := b.b.Find(e, fieldVal.Interface().(string))
-				if ee == nil {
+				ee := b.b.Find(e, key, fieldVal.Interface().(string))
+				if len(ee) == 0 {
 					return fmt.Errorf("missing reference %v:%v", entity, key)
 				}
 			}
@@ -122,6 +122,34 @@ func (b *Backend) Delete(entity model.Base) error {
 
 	if err := b.Update(entity); err != nil {
 		return err
+	}
+
+	// struct validation
+	entityType := reflect.TypeOf(entity).Elem()
+	for i := 0; i < entityType.NumField(); i++ {
+		field := entityType.Field(i)
+		fieldVal := reflect.ValueOf(entity).Elem().Field(i)
+
+		modelTags := strings.Split(field.Tag.Get("model"), ",")
+
+		// required check
+		for _, s := range modelTags {
+			if strings.Contains(s, "reference") {
+				v := strings.Split(s, "=")[1]
+				e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
+
+				ee := b.b.Find(e, key, fieldVal.Interface().(string))
+				if ee == nil {
+					return fmt.Errorf("missing reference %v:%v", entity, key)
+				}
+
+				for _, dependent := range ee {
+					if err := b.Delete(dependent); err != nil {
+						return fmt.Errorf("unable to delete referenced entity: %w", err)
+					}
+				}
+			}
+		}
 	}
 
 	return b.b.Delete(entity)

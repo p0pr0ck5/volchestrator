@@ -379,6 +379,42 @@ func TestBackend_Read(t *testing.T) {
 			true,
 		},
 		{
+			"valid lease request",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				&leaserequest.LeaseRequest{
+					ID: "foo",
+				},
+			},
+			&leaserequest.LeaseRequest{
+				ID:       "foo",
+				ClientID: "foo",
+				Region:   "us-west-2",
+				Tag:      "foo",
+				Status:   leaserequest.Pending,
+
+				Model: model.Model{
+					CreatedAt: mock.NowIsh(),
+				},
+			},
+			false,
+		},
+		{
+			"invalid lease request",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				&leaserequest.LeaseRequest{
+					ID: "bad",
+				},
+			},
+			nil,
+			true,
+		},
+		{
 			"unsupported",
 			fields{
 				b: mock.NewMockBackend(),
@@ -738,6 +774,72 @@ func TestBackend_Delete(t *testing.T) {
 			true,
 		},
 		{
+			"valid client with associated lease request",
+			fields{
+				b: mock.NewMockBackend(mock.WithMocks(map[string]model.Base{
+					"Client": &client.Client{
+						ID:     "foo",
+						Status: client.Alive,
+					},
+					"LeaseRequest": &leaserequest.LeaseRequest{
+						ID:       "foo",
+						ClientID: "foo",
+						Status:   leaserequest.Pending,
+					},
+				})),
+			},
+			args{
+				&client.Client{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"valid client with error deleting associated lease request",
+			fields{
+				b: mock.NewMockBackend(mock.WithMocks(map[string]model.Base{
+					"Client": &client.Client{
+						ID:     "foo",
+						Status: client.Alive,
+					},
+					"LeaseRequest": &leaserequest.LeaseRequest{
+						ID:       "bad",
+						ClientID: "foo",
+						Status:   leaserequest.Pending,
+					},
+				})),
+			},
+			args{
+				&client.Client{
+					ID: "foo",
+				},
+			},
+			true,
+		},
+		{
+			"valid client with bad transition deleting associated lease request",
+			fields{
+				b: mock.NewMockBackend(mock.WithMocks(map[string]model.Base{
+					"Client": &client.Client{
+						ID:     "foo",
+						Status: client.Alive,
+					},
+					"LeaseRequest": &leaserequest.LeaseRequest{
+						ID:       "foo",
+						ClientID: "foo",
+						Status:   leaserequest.Fulfilled,
+					},
+				})),
+			},
+			args{
+				&client.Client{
+					ID: "foo",
+				},
+			},
+			true,
+		},
+		{
 			"valid volume",
 			fields{
 				b: mock.NewMockBackend(),
@@ -756,6 +858,30 @@ func TestBackend_Delete(t *testing.T) {
 			},
 			args{
 				&volume.Volume{
+					ID: "bad",
+				},
+			},
+			true,
+		},
+		{
+			"valid lease request",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				&leaserequest.LeaseRequest{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"invalid lease request",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				&leaserequest.LeaseRequest{
 					ID: "bad",
 				},
 			},

@@ -44,7 +44,7 @@ var sm = fsm.TransitionMap{
 type Client struct {
 	model.Model
 
-	ID         string `model:"immutable,required"`
+	ID         string `model:"immutable,required,reference=LeaseRequest:ClientID"`
 	Token      string `proto:"ignore" model:"required"`
 	Status     Status
 	Registered time.Time
