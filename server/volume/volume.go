@@ -123,3 +123,8 @@ func (v *Volume) SetStatus(s string) {
 func (v *Volume) F() *fsm.FSM {
 	return v.FSM
 }
+
+func (v *Volume) Clone() model.Base {
+	vv := *v
+	return &vv
+}

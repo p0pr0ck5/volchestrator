@@ -122,6 +122,7 @@ func (m *Memory) List(entityType string, entities *[]model.Base) error {
 	iter := m.getMap(entityType).MapRange()
 	for iter.Next() {
 		v := iter.Value().Interface().(model.Base)
+		v = v.Clone()
 		*entities = append(*entities, v)
 	}
 
@@ -139,6 +140,7 @@ func (m *Memory) Find(entityType, fieldName, id string) []model.Base {
 		v := iter.Value().Interface().(model.Base)
 		f := reflect.ValueOf(v).Elem().FieldByName(fieldName).Interface().(string)
 		if f == id {
+			v = v.Clone()
 			entites = append(entites, v)
 		}
 	}

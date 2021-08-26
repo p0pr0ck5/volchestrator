@@ -71,7 +71,7 @@ type LeaseRequest struct {
 }
 
 func (l *LeaseRequest) Init() {
-	l.FSM, _ = fsm.NewFSM(Pending)
+	l.FSM, _ = fsm.NewFSM(l.Status)
 	for k, vv := range sm {
 		l.FSM.AddTransitions(k, vv)
 	}
@@ -95,4 +95,9 @@ func (l *LeaseRequest) SetStatus(s string) {
 
 func (l *LeaseRequest) F() *fsm.FSM {
 	return l.FSM
+}
+
+func (v *LeaseRequest) Clone() model.Base {
+	vv := *v
+	return &vv
 }

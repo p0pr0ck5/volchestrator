@@ -20,4 +20,5 @@ type Base interface {
 	ValidateTransition(Base) error
 	SetStatus(string)
 	F() *fsm.FSM
+	Clone() Base
 }

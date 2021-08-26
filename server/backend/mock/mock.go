@@ -167,6 +167,7 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 		} else {
 			ee := res[0].Interface().([]model.Base)
 			*entities = append(*entities, ee...)
+			return nil
 		}
 	}
 
@@ -174,6 +175,7 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 	if !ok {
 		return errors.New("unsupported")
 	}
+	e.Init()
 
 	*entities = append(*entities, e)
 
@@ -184,6 +186,8 @@ func (m *MockBackend) Find(entityType, fieldName, id string) []model.Base {
 	e := m.mocks[entityType]
 	f := reflect.ValueOf(e).Elem().FieldByName(fieldName).Interface().(string)
 	if f == id {
+		e = e.Clone()
+		e.Init()
 		return []model.Base{e}
 	}
 	return nil

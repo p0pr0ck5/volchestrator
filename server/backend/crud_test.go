@@ -34,6 +34,11 @@ func (m *mockBase) F() *fsm.FSM {
 	return nil
 }
 
+func (v *mockBase) Clone() model.Base {
+	vv := *v
+	return &vv
+}
+
 func TestBackend_Create(t *testing.T) {
 	type fields struct {
 		b backend

@@ -77,3 +77,8 @@ func (c *Client) SetStatus(s string) {
 func (c *Client) F() *fsm.FSM {
 	return c.FSM
 }
+
+func (v *Client) Clone() model.Base {
+	vv := *v
+	return &vv
+}

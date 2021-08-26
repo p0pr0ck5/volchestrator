@@ -204,13 +204,14 @@ func TestServer_PruneClientsReturn(t *testing.T) {
 				return nil, errors.New("bad")
 			}
 
-			return []model.Base{
-				&client.Client{
-					ID:         s,
-					Registered: mockThen,
-					LastSeen:   mockThen,
-				},
-			}, nil
+			c := &client.Client{
+				ID:         s,
+				Registered: mockThen,
+				LastSeen:   mockThen,
+			}
+			c.Init()
+
+			return []model.Base{c}, nil
 		}
 	}
 
