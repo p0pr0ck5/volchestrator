@@ -268,6 +268,22 @@ func TestBackend_Create(t *testing.T) {
 			args{
 				entity: &leaserequest.LeaseRequest{
 					ID:       "foo",
+					ClientID: "bad",
+					Region:   "us-west-2",
+					Tag:      "foo",
+					Status:   leaserequest.Pending,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease request - nonexistent client reference",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &leaserequest.LeaseRequest{
+					ID:       "foo",
 					ClientID: "bar",
 					Region:   "us-west-2",
 					Tag:      "foo",

@@ -166,7 +166,9 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 			return e
 		} else {
 			ee := res[0].Interface().([]model.Base)
-			*entities = append(*entities, ee...)
+			for _, m := range ee {
+				*entities = append(*entities, m.Clone())
+			}
 			return nil
 		}
 	}
@@ -175,6 +177,7 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 	if !ok {
 		return errors.New("unsupported")
 	}
+	e = e.Clone()
 	e.Init()
 
 	*entities = append(*entities, e)
