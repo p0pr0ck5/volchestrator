@@ -10,7 +10,7 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server/model"
 )
 
-type processfunc func(tag string, i int, field reflect.StructField) error
+type processfunc func(string, int, reflect.StructField) error
 
 func (b *Backend) Create(entity model.Base) error {
 	entity.Init()
@@ -160,7 +160,6 @@ func (b *Backend) processModel(entity model.Base, processors ...processfunc) err
 
 		modelTags := strings.Split(field.Tag.Get("model"), ",")
 
-		// required check
 		for _, s := range modelTags {
 			for _, f := range processors {
 				if err := f(s, i, field); err != nil {
