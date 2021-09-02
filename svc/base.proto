@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "github.com/p0pr0ck5/volchestrator/svc";
+
+package volchestrator;
+
+message LeaseRequest {
+  string lease_request_id = 1;
+  string client_id = 2;
+  string region = 3;
+  string tag = 4;
+  enum Status {
+    unused = 0;
+    Pending = 1;
+    Fulfulling = 2;
+    Fulfilled = 3;
+  }
+  Status status = 5;
+}

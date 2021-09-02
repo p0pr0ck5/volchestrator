@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/notification"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
@@ -100,6 +101,43 @@ func Test_toProto(t *testing.T) {
 				Message: "bar",
 			},
 		},
+		{
+			"lease request",
+			args{
+				from: &leaserequest.LeaseRequest{
+					ID:       "foo",
+					ClientID: "bar",
+					Region:   "us-west-2",
+					Tag:      "baz",
+					Status:   leaserequest.Pending,
+				},
+			},
+			&svc.LeaseRequest{
+				LeaseRequestId: "foo",
+				ClientId:       "bar",
+				Region:         "us-west-2",
+				Tag:            "baz",
+				Status:         svc.LeaseRequest_Pending,
+			},
+		},
+		{
+			"lease request without status",
+			args{
+				from: &leaserequest.LeaseRequest{
+					ID:       "foo",
+					ClientID: "bar",
+					Region:   "us-west-2",
+					Tag:      "baz",
+				},
+			},
+			&svc.LeaseRequest{
+				LeaseRequestId: "foo",
+				ClientId:       "bar",
+				Region:         "us-west-2",
+				Tag:            "baz",
+				Status:         0,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -151,6 +189,43 @@ func Test_toStruct(t *testing.T) {
 				Region: "us-west-2",
 				Tag:    "bar",
 				Status: 0,
+			},
+		},
+		{
+			"lease request",
+			args{
+				from: &svc.LeaseRequest{
+					LeaseRequestId: "foo",
+					ClientId:       "bar",
+					Region:         "us-west-2",
+					Tag:            "baz",
+					Status:         svc.LeaseRequest_Pending,
+				},
+			},
+			&leaserequest.LeaseRequest{
+				ID:       "foo",
+				ClientID: "bar",
+				Region:   "us-west-2",
+				Tag:      "baz",
+				Status:   leaserequest.Pending,
+			},
+		},
+		{
+			"lease request without status",
+			args{
+				from: &svc.LeaseRequest{
+					LeaseRequestId: "foo",
+					ClientId:       "bar",
+					Region:         "us-west-2",
+					Tag:            "baz",
+				},
+			},
+			&leaserequest.LeaseRequest{
+				ID:       "foo",
+				ClientID: "bar",
+				Region:   "us-west-2",
+				Tag:      "baz",
+				Status:   0,
 			},
 		},
 	}

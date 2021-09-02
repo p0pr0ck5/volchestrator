@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -9,8 +10,33 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
+
+func (s *Server) authClient(req interface{}) (*client.Client, error) {
+	clientID := reflect.ValueOf(req).Elem().FieldByName("ClientId").Interface().(string)
+
+	if clientID == "" {
+		return nil, errors.New("empty client id")
+	}
+
+	client := &client.Client{
+		ID: clientID,
+	}
+
+	if err := s.b.Read(client); err != nil {
+		return nil, errors.Wrap(err, "get client")
+	}
+
+	token := reflect.ValueOf(req).Elem().FieldByName("Token").Interface().(string)
+
+	if client.Token != token {
+		return nil, errors.New("invalid token")
+	}
+
+	return client, nil
+}
 
 func (s *Server) Register(ctx context.Context, req *svc.RegisterRequest) (*svc.RegisterResponse, error) {
 	if req.ClientId == "" {
@@ -36,20 +62,11 @@ func (s *Server) Register(ctx context.Context, req *svc.RegisterRequest) (*svc.R
 }
 
 func (s *Server) Deregister(ctx context.Context, req *svc.DeregisterRequest) (*svc.DeregisterResponse, error) {
-	if req.ClientId == "" {
-		return nil, errors.New("empty client id")
-	}
+	var client *client.Client
+	var err error
 
-	client := &client.Client{
-		ID: req.ClientId,
-	}
-
-	if err := s.b.Read(client); err != nil {
-		return nil, errors.Wrap(err, "get client")
-	}
-
-	if client.Token != req.Token {
-		return nil, errors.New("invalid token")
+	if client, err = s.authClient(req); err != nil {
+		return nil, err
 	}
 
 	if err := s.b.Delete(client); err != nil {
@@ -60,20 +77,11 @@ func (s *Server) Deregister(ctx context.Context, req *svc.DeregisterRequest) (*s
 }
 
 func (s *Server) Ping(ctx context.Context, req *svc.PingRequest) (*svc.PingResponse, error) {
-	if req.ClientId == "" {
-		return nil, errors.New("empty client id")
-	}
+	var client *client.Client
+	var err error
 
-	client := &client.Client{
-		ID: req.ClientId,
-	}
-
-	if err := s.b.Read(client); err != nil {
-		return nil, errors.Wrap(err, "get client")
-	}
-
-	if client.Token != req.Token {
-		return nil, errors.New("invalid token")
+	if client, err = s.authClient(req); err != nil {
+		return nil, err
 	}
 
 	if err := s.b.Update(client); err != nil {
@@ -84,23 +92,14 @@ func (s *Server) Ping(ctx context.Context, req *svc.PingRequest) (*svc.PingRespo
 }
 
 func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream svc.Volchestrator_WatchNotificationsServer) error {
-	if req.ClientId == "" {
-		return errors.New("empty client id")
+	var client *client.Client
+	var err error
+
+	if client, err = s.authClient(req); err != nil {
+		return err
 	}
 
-	client := &client.Client{
-		ID: req.ClientId,
-	}
-
-	if err := s.b.Read(client); err != nil {
-		return errors.Wrap(err, "get client")
-	}
-
-	if client.Token != req.Token {
-		return errors.New("invalid token")
-	}
-
-	ch, err := s.b.GetNotifications(req.ClientId)
+	ch, err := s.b.GetNotifications(client.ID)
 	if err != nil {
 		return errors.Wrap(err, "get notifications")
 	}
@@ -128,4 +127,27 @@ func (s *Server) WatchNotifications(req *svc.WatchNotificationsRequest, stream s
 			})
 		}
 	}
+}
+
+func (s *Server) RequestLease(ctx context.Context, req *svc.RequestLeaseRequest) (*svc.RequestLeaseResponse, error) {
+	var client *client.Client
+	var err error
+
+	if client, err = s.authClient(req); err != nil {
+		return nil, err
+	}
+
+	leaseReq := &leaserequest.LeaseRequest{
+		ID:       req.LeaseRequestId,
+		ClientID: client.ID,
+		Region:   req.Region,
+		Tag:      req.Tag,
+		Status:   leaserequest.Pending,
+	}
+
+	if err := s.b.Create(leaseReq); err != nil {
+		return nil, err
+	}
+
+	return &svc.RequestLeaseResponse{}, nil
 }

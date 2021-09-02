@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
@@ -48,7 +49,7 @@ func (s *Server) ListClients(ctx context.Context, req *svc.ListClientsRequest) (
 
 func (s *Server) GetVolume(ctx context.Context, req *svc.GetVolumeRequest) (*svc.GetVolumeResponse, error) {
 	if req.VolumeId == "" {
-		return nil, errors.New("empty client id")
+		return nil, errors.New("empty volume id")
 	}
 
 	volume := &volume.Volume{
@@ -113,4 +114,39 @@ func (s *Server) DeleteVolume(ctx context.Context, req *svc.DeleteVolumeRequest)
 	}
 
 	return &svc.DeleteVolumeResponse{}, nil
+}
+
+func (s *Server) GetLeaseRequest(ctx context.Context, req *svc.GetLeaseRequestRequest) (*svc.GetLeaseRequestResponse, error) {
+	if req.LeaseRequestId == "" {
+		return nil, errors.New("empty lease request id")
+	}
+
+	leaseRequest := &leaserequest.LeaseRequest{
+		ID: req.LeaseRequestId,
+	}
+
+	if err := s.b.Read(leaseRequest); err != nil {
+		return nil, err
+	}
+
+	res := &svc.GetLeaseRequestResponse{
+		LeaseRequest: toProto(leaseRequest).(*svc.LeaseRequest),
+	}
+
+	return res, nil
+}
+
+func (s *Server) ListLeaseRequests(ctx context.Context, req *svc.ListLeaseRequestsRequest) (*svc.ListLeaseRequestsResponse, error) {
+	leaseRequests := []model.Base{}
+	if err := s.b.List("LeaseRequest", &leaseRequests); err != nil {
+		return nil, err
+	}
+
+	res := &svc.ListLeaseRequestsResponse{}
+
+	for _, leaseRequest := range leaseRequests {
+		res.LeaseRequests = append(res.LeaseRequests, toProto(leaseRequest).(*svc.LeaseRequest))
+	}
+
+	return res, nil
 }

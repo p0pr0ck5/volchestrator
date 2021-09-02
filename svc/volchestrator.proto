@@ -41,10 +41,22 @@ message WatchNotificationsResponse {
   Notification notification = 1;
 }
 
+message RequestLeaseRequest {
+  string client_id = 1;
+  string token = 2;
+  string lease_request_id = 3;
+  string region = 4;
+  string tag = 5;
+}
+
+message RequestLeaseResponse {}
+
 service Volchestrator {
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
   rpc Deregister(DeregisterRequest) returns (DeregisterResponse) {}
   rpc Ping(PingRequest) returns (PingResponse) {}
 
   rpc WatchNotifications(WatchNotificationsRequest) returns (stream WatchNotificationsResponse) {}
+
+  rpc RequestLease(RequestLeaseRequest) returns (RequestLeaseResponse) {}
 }

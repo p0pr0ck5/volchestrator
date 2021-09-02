@@ -286,3 +286,160 @@ func TestServer_WatchNotifications(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_RequestLease(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req *svc.RequestLeaseRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *svc.RequestLeaseResponse
+		wantErr bool
+	}{
+		{
+			"valid lease request",
+			args{
+				ctx: context.Background(),
+				req: &svc.RequestLeaseRequest{
+					LeaseRequestId: "foo",
+					ClientId:       "foo",
+					Token:          "mock",
+					Region:         "us-west-2",
+					Tag:            "baz",
+				},
+			},
+			&svc.RequestLeaseResponse{},
+			false,
+		},
+		{
+			"invalid lease request - missing lease request id",
+			args{
+				ctx: context.Background(),
+				req: &svc.RequestLeaseRequest{
+					ClientId: "foo",
+					Token:    "mock",
+					Region:   "us-west-2",
+					Tag:      "baz",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - bad lease request id",
+			args{
+				ctx: context.Background(),
+				req: &svc.RequestLeaseRequest{
+					LeaseRequestId: "bad",
+					ClientId:       "foo",
+					Token:          "mock",
+					Region:         "us-west-2",
+					Tag:            "baz",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - missing client id",
+			args{
+				ctx: context.Background(),
+				req: &svc.RequestLeaseRequest{
+					LeaseRequestId: "foo",
+					Token:          "mock",
+					Region:         "us-west-2",
+					Tag:            "baz",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - bad client id",
+			args{
+				ctx: context.Background(),
+				req: &svc.RequestLeaseRequest{
+					LeaseRequestId: "foo",
+					ClientId:       "bad",
+					Token:          "mock",
+					Region:         "us-west-2",
+					Tag:            "baz",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - bad client token",
+			args{
+				ctx: context.Background(),
+				req: &svc.RequestLeaseRequest{
+					LeaseRequestId: "foo",
+					ClientId:       "foo",
+					Token:          "nope",
+					Region:         "us-west-2",
+					Tag:            "baz",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - missing client token",
+			args{
+				ctx: context.Background(),
+				req: &svc.RequestLeaseRequest{
+					LeaseRequestId: "foo",
+					ClientId:       "foo",
+					Region:         "us-west-2",
+					Tag:            "baz",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - missing region",
+			args{
+				ctx: context.Background(),
+				req: &svc.RequestLeaseRequest{
+					LeaseRequestId: "foo",
+					ClientId:       "foo",
+					Token:          "mock",
+					Tag:            "baz",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - missing tag",
+			args{
+				ctx: context.Background(),
+				req: &svc.RequestLeaseRequest{
+					LeaseRequestId: "foo",
+					ClientId:       "foo",
+					Token:          "mock",
+					Region:         "us-west-2",
+				},
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, _ := NewServer(WithMockBackend())
+			got, err := s.RequestLease(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Server.RequestLease() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Server.RequestLease() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

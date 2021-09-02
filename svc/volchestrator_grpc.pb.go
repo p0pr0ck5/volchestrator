@@ -21,6 +21,7 @@ type VolchestratorClient interface {
 	Deregister(ctx context.Context, in *DeregisterRequest, opts ...grpc.CallOption) (*DeregisterResponse, error)
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 	WatchNotifications(ctx context.Context, in *WatchNotificationsRequest, opts ...grpc.CallOption) (Volchestrator_WatchNotificationsClient, error)
+	RequestLease(ctx context.Context, in *RequestLeaseRequest, opts ...grpc.CallOption) (*RequestLeaseResponse, error)
 }
 
 type volchestratorClient struct {
@@ -90,6 +91,15 @@ func (x *volchestratorWatchNotificationsClient) Recv() (*WatchNotificationsRespo
 	return m, nil
 }
 
+func (c *volchestratorClient) RequestLease(ctx context.Context, in *RequestLeaseRequest, opts ...grpc.CallOption) (*RequestLeaseResponse, error) {
+	out := new(RequestLeaseResponse)
+	err := c.cc.Invoke(ctx, "/volchestrator.Volchestrator/RequestLease", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VolchestratorServer is the server API for Volchestrator service.
 // All implementations must embed UnimplementedVolchestratorServer
 // for forward compatibility
@@ -98,6 +108,7 @@ type VolchestratorServer interface {
 	Deregister(context.Context, *DeregisterRequest) (*DeregisterResponse, error)
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
 	WatchNotifications(*WatchNotificationsRequest, Volchestrator_WatchNotificationsServer) error
+	RequestLease(context.Context, *RequestLeaseRequest) (*RequestLeaseResponse, error)
 	mustEmbedUnimplementedVolchestratorServer()
 }
 
@@ -116,6 +127,9 @@ func (UnimplementedVolchestratorServer) Ping(context.Context, *PingRequest) (*Pi
 }
 func (UnimplementedVolchestratorServer) WatchNotifications(*WatchNotificationsRequest, Volchestrator_WatchNotificationsServer) error {
 	return status.Errorf(codes.Unimplemented, "method WatchNotifications not implemented")
+}
+func (UnimplementedVolchestratorServer) RequestLease(context.Context, *RequestLeaseRequest) (*RequestLeaseResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestLease not implemented")
 }
 func (UnimplementedVolchestratorServer) mustEmbedUnimplementedVolchestratorServer() {}
 
@@ -205,6 +219,24 @@ func (x *volchestratorWatchNotificationsServer) Send(m *WatchNotificationsRespon
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Volchestrator_RequestLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestLeaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VolchestratorServer).RequestLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/volchestrator.Volchestrator/RequestLease",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VolchestratorServer).RequestLease(ctx, req.(*RequestLeaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Volchestrator_ServiceDesc is the grpc.ServiceDesc for Volchestrator service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -223,6 +255,10 @@ var Volchestrator_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _Volchestrator_Ping_Handler,
+		},
+		{
+			MethodName: "RequestLease",
+			Handler:    _Volchestrator_RequestLease_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	timestamppb "github.com/golang/protobuf/ptypes/timestamp"
-
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
@@ -53,6 +52,15 @@ func TestServer_GetClient(t *testing.T) {
 				&svc.GetClientRequest{
 					ClientId: "bad",
 				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid client - missing id in request",
+			args{
+				context.Background(),
+				&svc.GetClientRequest{},
 			},
 			nil,
 			true,
@@ -153,6 +161,15 @@ func TestServer_GetVolume(t *testing.T) {
 				&svc.GetVolumeRequest{
 					VolumeId: "bad",
 				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid volume - missing id in request",
+			args{
+				context.Background(),
+				&svc.GetVolumeRequest{},
 			},
 			nil,
 			true,
@@ -416,7 +433,7 @@ func TestServer_DeleteVolume(t *testing.T) {
 			false,
 		},
 		{
-			"valid volume",
+			"invalid volume",
 			args{
 				context.Background(),
 				&svc.DeleteVolumeRequest{
@@ -439,6 +456,119 @@ func TestServer_DeleteVolume(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Server.DeleteVolume() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestServer_GetLeaseRequest(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req *svc.GetLeaseRequestRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *svc.GetLeaseRequestResponse
+		wantErr bool
+	}{
+		{
+			"valid lease request",
+			args{
+				context.Background(),
+				&svc.GetLeaseRequestRequest{
+					LeaseRequestId: "foo",
+				},
+			},
+			&svc.GetLeaseRequestResponse{
+				LeaseRequest: &svc.LeaseRequest{
+					LeaseRequestId: "foo",
+					ClientId:       "foo",
+					Region:         "us-west-2",
+					Tag:            "foo",
+					Status:         svc.LeaseRequest_Pending,
+				},
+			},
+			false,
+		},
+		{
+			"invalid lease request",
+			args{
+				context.Background(),
+				&svc.GetLeaseRequestRequest{
+					LeaseRequestId: "bad",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease request - missing id in request",
+			args{
+				context.Background(),
+				&svc.GetLeaseRequestRequest{},
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, _ := NewServer(WithMockBackend())
+			got, err := s.GetLeaseRequest(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Server.GetLeaseRequest() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Server.GetLeaseRequest() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestServer_ListLeaseRequests(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req *svc.ListLeaseRequestsRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *svc.ListLeaseRequestsResponse
+		wantErr bool
+	}{
+		{
+			"list lease requests",
+			args{
+				context.Background(),
+				&svc.ListLeaseRequestsRequest{},
+			},
+			&svc.ListLeaseRequestsResponse{
+				LeaseRequests: []*svc.LeaseRequest{
+					{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Region:         "us-west-2",
+						Tag:            "foo",
+						Status:         svc.LeaseRequest_Pending,
+					},
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, _ := NewServer(WithMockBackend())
+
+			got, err := s.ListLeaseRequests(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Server.ListLeaseRequests() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Server.ListLeaseRequests() = %v, want %v", got, tt.want)
 			}
 		})
 	}
