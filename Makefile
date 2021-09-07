@@ -8,5 +8,9 @@ proto:
 		svc/*.proto
 
 .PHONY: test
-test:
+test: clean
 	go test -race -v ./... && echo '\e[1;32mAll good!\e[0m' || echo '\e[1;31mNope!\e[0m'
+
+.PHONE: clean
+clean:
+	go clean -cache
