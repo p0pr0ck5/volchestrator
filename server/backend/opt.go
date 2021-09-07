@@ -4,6 +4,7 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
@@ -25,11 +26,22 @@ func WithMockBackend(m *mock.MockBackend) BackendOpt {
 	}
 }
 
+func WithEntities(entities []model.Base) BackendOpt {
+	return func(b *Backend) error {
+		for _, e := range entities {
+			if err := b.Create(e); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+}
+
 func WithClients(clients []*client.Client) BackendOpt {
 	return func(b *Backend) error {
 		for _, c := range clients {
-			err := b.Create(c)
-			if err != nil {
+			if err := b.Create(c); err != nil {
 				return err
 			}
 		}
@@ -41,8 +53,7 @@ func WithClients(clients []*client.Client) BackendOpt {
 func WithVolumes(volumes []*volume.Volume) BackendOpt {
 	return func(b *Backend) error {
 		for _, v := range volumes {
-			err := b.Create(v)
-			if err != nil {
+			if err := b.Create(v); err != nil {
 				return err
 			}
 		}
