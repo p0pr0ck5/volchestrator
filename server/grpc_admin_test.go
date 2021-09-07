@@ -11,6 +11,8 @@ import (
 
 	"github.com/p0pr0ck5/volchestrator/server/backend"
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
+	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
@@ -1050,5 +1052,271 @@ func Test_Volume_Lifecycle(t *testing.T) {
 	}
 	if len(volumes.Volumes) != 0 {
 		t.Errorf("client.List() unexpected Volumes = %v", volumes)
+	}
+}
+
+func Test_GetLeaseRequest(t *testing.T) {
+	mockNow := time.Now()
+
+	mockClients := []*client.Client{
+		{
+			ID:         "foo",
+			Token:      "mock",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+		{
+			ID:         "bar",
+			Token:      "mock",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+	}
+
+	mockLeaseRequests := []*leaserequest.LeaseRequest{
+		{
+			ID:       "foo",
+			ClientID: "foo",
+			Region:   "us-west-2",
+			Tag:      "foo",
+			Status:   leaserequest.Pending,
+		},
+		{
+			ID:       "bar",
+			ClientID: "bar",
+			Region:   "us-west-2",
+			Tag:      "bar",
+			Status:   leaserequest.Fulfilled,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.GetLeaseRequestRequest
+	}
+	tests := []struct {
+		name    string
+		args    []args
+		want    []*svc.GetLeaseRequestResponse
+		wantErr []bool
+	}{
+		{
+			"valid lease request",
+			[]args{
+				{
+					context.Background(),
+					&svc.GetLeaseRequestRequest{
+						LeaseRequestId: "foo",
+					},
+				},
+			},
+			[]*svc.GetLeaseRequestResponse{
+				{
+					LeaseRequest: &svc.LeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Region:         "us-west-2",
+						Tag:            "foo",
+						Status:         svc.LeaseRequest_Pending,
+					},
+				},
+			},
+			[]bool{false},
+		},
+		{
+			"different valid lease request",
+			[]args{
+				{
+					context.Background(),
+					&svc.GetLeaseRequestRequest{
+						LeaseRequestId: "bar",
+					},
+				},
+			},
+			[]*svc.GetLeaseRequestResponse{
+				{
+					LeaseRequest: &svc.LeaseRequest{
+						LeaseRequestId: "bar",
+						ClientId:       "bar",
+						Region:         "us-west-2",
+						Tag:            "bar",
+						Status:         svc.LeaseRequest_Fulfilled,
+					},
+				},
+			},
+			[]bool{false},
+		},
+		{
+			"invalid lease request - dne",
+			[]args{
+				{
+					context.Background(),
+					&svc.GetLeaseRequestRequest{
+						LeaseRequestId: "dne",
+					},
+				},
+			},
+			[]*svc.GetLeaseRequestResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"invalid lease request - missing lease request id",
+			[]args{
+				{
+					context.Background(),
+					&svc.GetLeaseRequestRequest{},
+				},
+			},
+			[]*svc.GetLeaseRequestResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
+			b := []model.Base{}
+			for _, c := range mockClients {
+				b = append(b, c)
+			}
+			for _, e := range mockLeaseRequests {
+				b = append(b, e)
+			}
+			srv.b = backend.NewMemoryBackend(backend.WithEntities(b))
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorAdminClient(conn)
+
+			for i, req := range tt.args {
+				got, err := client.GetLeaseRequest(req.ctx, req.req)
+				if (err != nil) != tt.wantErr[i] {
+					t.Errorf("Server.GetLeaseRequest() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !proto.Equal(got, tt.want[i]) {
+					t.Errorf("Server.GetLeaseRequest() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func Test_ListLeaseRequests(t *testing.T) {
+	mockNow := time.Now()
+
+	mockClients := []*client.Client{
+		{
+			ID:         "foo",
+			Token:      "mock",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+		{
+			ID:         "bar",
+			Token:      "mock",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+	}
+
+	mockLeaseRequests := []*leaserequest.LeaseRequest{
+		{
+			ID:       "foo",
+			ClientID: "foo",
+			Region:   "us-west-2",
+			Tag:      "foo",
+			Status:   leaserequest.Pending,
+		},
+		{
+			ID:       "bar",
+			ClientID: "bar",
+			Region:   "us-west-2",
+			Tag:      "bar",
+			Status:   leaserequest.Fulfilled,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.ListLeaseRequestsRequest
+	}
+	tests := []struct {
+		name    string
+		args    []args
+		want    []*svc.ListLeaseRequestsResponse
+		wantErr []bool
+	}{
+		{
+			"lease requests",
+			[]args{
+				{
+					context.Background(),
+					&svc.ListLeaseRequestsRequest{},
+				},
+			},
+			[]*svc.ListLeaseRequestsResponse{
+				{
+					LeaseRequests: []*svc.LeaseRequest{
+						{
+							LeaseRequestId: "bar",
+							ClientId:       "bar",
+							Region:         "us-west-2",
+							Tag:            "bar",
+							Status:         svc.LeaseRequest_Fulfilled,
+						},
+						{
+							LeaseRequestId: "foo",
+							ClientId:       "foo",
+							Region:         "us-west-2",
+							Tag:            "foo",
+							Status:         svc.LeaseRequest_Pending,
+						},
+					},
+				},
+			},
+			[]bool{false},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
+			b := []model.Base{}
+			for _, c := range mockClients {
+				b = append(b, c)
+			}
+			for _, e := range mockLeaseRequests {
+				b = append(b, e)
+			}
+			srv.b = backend.NewMemoryBackend(backend.WithEntities(b))
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorAdminClient(conn)
+
+			for i, req := range tt.args {
+				got, err := client.ListLeaseRequests(req.ctx, req.req)
+				if (err != nil) != tt.wantErr[i] {
+					t.Errorf("Server.ListLeaseRequests() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !proto.Equal(got, tt.want[i]) {
+					t.Errorf("Server.ListLeaseRequests() = %v, want %v", got, tt.want)
+				}
+			}
+		})
 	}
 }
