@@ -7,20 +7,6 @@ import (
 
 type Status int
 
-type LeaseRequestError struct {
-	e string
-}
-
-func newLeaseRequestError(err string) LeaseRequestError {
-	return LeaseRequestError{
-		e: err,
-	}
-}
-
-func (e LeaseRequestError) Error() string {
-	return e.e
-}
-
 var statusMap = map[string]Status{
 	"Pending":    Pending,
 	"Fulfilling": Fulfilling,

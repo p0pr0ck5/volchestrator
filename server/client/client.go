@@ -9,20 +9,6 @@ import (
 
 type Status int
 
-type ClientError struct {
-	e string
-}
-
-func newClientError(err string) ClientError {
-	return ClientError{
-		e: err,
-	}
-}
-
-func (e ClientError) Error() string {
-	return e.e
-}
-
 var statusMap = map[string]Status{
 	"Alive":    Alive,
 	"Deleting": Deleting,
