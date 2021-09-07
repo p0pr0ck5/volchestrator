@@ -9,7 +9,9 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/config"
+	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/model"
+	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/pkg/errors"
 )
 
@@ -253,6 +255,133 @@ func TestServer_PruneClientsReturn(t *testing.T) {
 			if err := s.PruneClients(); (err != nil) != tt.wantErr {
 				t.Errorf("s.PruneClients() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+		})
+	}
+}
+
+func TestServer_FindVolumes(t *testing.T) {
+	mockVolumes := []*volume.Volume{
+		{
+			ID:     "foo",
+			Region: "us-west-2",
+			Tag:    "bar",
+			Status: volume.Available,
+		},
+		{
+			ID:     "bar",
+			Region: "us-west-1",
+			Tag:    "baz",
+			Status: volume.Unavailable,
+		},
+		{
+			ID:     "baz",
+			Region: "us-west-2",
+			Tag:    "bar",
+			Status: volume.Available,
+		},
+		{
+			ID:     "bat",
+			Region: "us-west-2",
+			Tag:    "foo",
+			Status: volume.Available,
+		},
+	}
+
+	type args struct {
+		l *leaserequest.LeaseRequest
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []*volume.Volume
+		wantErr bool
+	}{
+		{
+			"one matching volume",
+			args{
+				&leaserequest.LeaseRequest{
+					Region: "us-west-2",
+					Tag:    "foo",
+				},
+			},
+			[]*volume.Volume{
+				{
+					ID:     "bat",
+					Region: "us-west-2",
+					Tag:    "foo",
+					Status: volume.Available,
+				},
+			},
+			false,
+		},
+		{
+			"two matching volumes",
+			args{
+				&leaserequest.LeaseRequest{
+					Region: "us-west-2",
+					Tag:    "bar",
+				},
+			},
+			[]*volume.Volume{
+				{
+					ID:     "baz",
+					Region: "us-west-2",
+					Tag:    "bar",
+					Status: volume.Available,
+				},
+				{
+					ID:     "foo",
+					Region: "us-west-2",
+					Tag:    "bar",
+					Status: volume.Available,
+				},
+			},
+			false,
+		},
+		{
+			"one matching volume (unavailable)",
+			args{
+				&leaserequest.LeaseRequest{
+					Region: "us-west-1",
+					Tag:    "baz",
+				},
+			},
+			[]*volume.Volume{},
+			false,
+		},
+		{
+			"no matches",
+			args{
+				&leaserequest.LeaseRequest{
+					Region: "us-west-3",
+					Tag:    "foo",
+				},
+			},
+			[]*volume.Volume{},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, _ := NewServer(WithBackend(backend.NewMemoryBackend(backend.WithVolumes(mockVolumes))))
+
+			got, err := s.FindVolumes(tt.args.l)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Server.FindVolumes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.want != nil {
+				// mock
+				for _, g := range got {
+					g.CreatedAt = time.Time{}
+					g.UpdatedAt = time.Time{}
+					g.FSM = nil
+				}
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Server.FindVolumes() = %v, want %v", got, tt.want)
 			}
 		})
 	}

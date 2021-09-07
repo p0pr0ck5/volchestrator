@@ -8,7 +8,9 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server/backend"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/config"
+	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/model"
+	"github.com/p0pr0ck5/volchestrator/server/volume"
 	"github.com/p0pr0ck5/volchestrator/svc"
 )
 
@@ -67,4 +69,26 @@ func (s *Server) PruneClients() error {
 	}
 
 	return errs.ErrorOrNil()
+}
+
+func (s *Server) FindVolumes(l *leaserequest.LeaseRequest) ([]*volume.Volume, error) {
+	var volumes []model.Base
+	if err := s.b.List("Volume", &volumes); err != nil {
+		return nil, err
+	}
+
+	res := []*volume.Volume{}
+	for _, v := range volumes {
+		v := v.(*volume.Volume)
+
+		if v.Status != volume.Available {
+			continue
+		}
+
+		if v.Tag == l.Tag && v.Region == l.Region {
+			res = append(res, v)
+		}
+	}
+
+	return res, nil
 }
