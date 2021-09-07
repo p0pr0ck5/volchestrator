@@ -1205,3 +1205,261 @@ func Test_Client_Lifecycle(t *testing.T) {
 		}
 	}
 }
+
+func Test_RequestLease(t *testing.T) {
+	mockNow := time.Now()
+
+	mockClients := []*client.Client{
+		{
+			ID:         "foo",
+			Token:      "mock",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+		{
+			ID:         "bar",
+			Token:      "mock",
+			Registered: mockNow,
+			LastSeen:   mockNow,
+		},
+	}
+
+	type args struct {
+		ctx context.Context
+		req *svc.RequestLeaseRequest
+	}
+	tests := []struct {
+		name    string
+		args    []args
+		want    []*svc.RequestLeaseResponse
+		wantErr []bool
+	}{
+		{
+			"one valid lease request",
+			[]args{
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Token:          "mock",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+			},
+			[]*svc.RequestLeaseResponse{
+				{},
+			},
+			[]bool{false},
+		},
+		{
+			"two valid lease requests",
+			[]args{
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Token:          "mock",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "bar",
+						ClientId:       "foo",
+						Token:          "mock",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+			},
+			[]*svc.RequestLeaseResponse{
+				{},
+				{},
+			},
+			[]bool{false, false},
+		},
+		{
+			"one invalid lease request - bad client id",
+			[]args{
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "dne",
+						ClientId:       "bad",
+						Token:          "mock",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+			},
+			[]*svc.RequestLeaseResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one invalid lease request - bad client token",
+			[]args{
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Token:          "nope",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+			},
+			[]*svc.RequestLeaseResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one invalid lease request - missing client token",
+			[]args{
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+			},
+			[]*svc.RequestLeaseResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one invalid lease request - missing region",
+			[]args{
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Token:          "mock",
+						Tag:            "foo",
+					},
+				},
+			},
+			[]*svc.RequestLeaseResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one invalid lease request - missing tag",
+			[]args{
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Token:          "mock",
+						Region:         "us-west-2",
+					},
+				},
+			},
+			[]*svc.RequestLeaseResponse{
+				nil,
+			},
+			[]bool{true},
+		},
+		{
+			"one valid and one invalid lease request",
+			[]args{
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Token:          "mock",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "dne",
+						Token:          "mock",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+			},
+			[]*svc.RequestLeaseResponse{
+				{},
+				nil,
+			},
+			[]bool{false, true},
+		},
+		{
+			"duplicate lease requests",
+			[]args{
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Token:          "mock",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+				{
+					context.Background(),
+					&svc.RequestLeaseRequest{
+						LeaseRequestId: "foo",
+						ClientId:       "foo",
+						Token:          "mock",
+						Region:         "us-west-2",
+						Tag:            "foo",
+					},
+				},
+			},
+			[]*svc.RequestLeaseResponse{
+				{},
+				nil,
+			},
+			[]bool{false, true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, bufDialer := mockServer()
+			srv.b = backend.NewMemoryBackend(backend.WithClients(mockClients))
+
+			ctx := context.Background()
+			conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+			defer conn.Close()
+			client := svc.NewVolchestratorClient(conn)
+
+			for i, req := range tt.args {
+				got, err := client.RequestLease(req.ctx, req.req)
+				if (err != nil) != tt.wantErr[i] {
+					t.Errorf("Server.RequestLease() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if !proto.Equal(got, tt.want[i]) {
+					t.Errorf("Server.RequestLease() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}
