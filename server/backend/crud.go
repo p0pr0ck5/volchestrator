@@ -110,10 +110,6 @@ func (b *Backend) Update(entity model.Base) error {
 	i := reflect.ValueOf(entity).Elem().FieldByName("Status")
 	reflect.ValueOf(&s).Elem().Set(i)
 
-	if can := entity.F().Can(s); !can {
-		return fmt.Errorf("invalid state transition %q", s)
-	}
-
 	if err := entity.F().Transition(s, entity); err != nil {
 		return err
 	}
