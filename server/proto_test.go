@@ -57,6 +57,19 @@ func Test_toProto(t *testing.T) {
 			},
 		},
 		{
+			"client in deleting state",
+			args{
+				from: &client.Client{
+					ID:     "foo",
+					Status: client.Deleting,
+				},
+			},
+			&svc.Client{
+				ClientId: "foo",
+				Status:   svc.Client_Deleting,
+			},
+		},
+		{
 			"volume",
 			args{
 				from: &volume.Volume{
@@ -87,6 +100,23 @@ func Test_toProto(t *testing.T) {
 				Region:   "us-west-2",
 				Tag:      "foo",
 				Status:   svc.Volume_unused,
+			},
+		},
+		{
+			"volume in deleting state",
+			args{
+				from: &volume.Volume{
+					ID:     "foo",
+					Region: "us-west-2",
+					Tag:    "foo",
+					Status: volume.Deleting,
+				},
+			},
+			&svc.Volume{
+				VolumeId: "foo",
+				Region:   "us-west-2",
+				Tag:      "foo",
+				Status:   svc.Volume_Deleting,
 			},
 		},
 		{
@@ -136,6 +166,25 @@ func Test_toProto(t *testing.T) {
 				Region:         "us-west-2",
 				Tag:            "baz",
 				Status:         0,
+			},
+		},
+		{
+			"lease request in deleting state",
+			args{
+				from: &leaserequest.LeaseRequest{
+					ID:       "foo",
+					ClientID: "bar",
+					Region:   "us-west-2",
+					Tag:      "baz",
+					Status:   leaserequest.Deleting,
+				},
+			},
+			&svc.LeaseRequest{
+				LeaseRequestId: "foo",
+				ClientId:       "bar",
+				Region:         "us-west-2",
+				Tag:            "baz",
+				Status:         svc.LeaseRequest_Deleting,
 			},
 		},
 	}

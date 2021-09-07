@@ -14,6 +14,7 @@ message LeaseRequest {
     Pending = 1;
     Fulfulling = 2;
     Fulfilled = 3;
+    Deleting = 4;
   }
   Status status = 5;
 }

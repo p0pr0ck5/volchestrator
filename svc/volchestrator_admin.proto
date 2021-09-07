@@ -12,6 +12,7 @@ message Client {
   string client_id = 1;
   enum Status {
     Alive = 0;
+    Deleting = 1;
   }
   Status status = 2;
   google.protobuf.Timestamp registered = 3;
@@ -43,6 +44,7 @@ message Volume {
     Attaching = 3;
     Attached = 4;
     Detaching = 5;
+    Deleting = 6;
   }
   Status status = 4;
 }
