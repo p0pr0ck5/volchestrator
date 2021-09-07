@@ -19,27 +19,35 @@ func (b *Backend) Create(entity model.Base) error {
 		return err
 	}
 
-	err := b.processModel(entity, func(tag string, i int, field reflect.StructField) error {
-		fieldVal := reflect.ValueOf(entity).Elem().Field(i)
+	err := b.processModel(
+		entity,
+		func(tag string, i int, field reflect.StructField) error {
+			fieldVal := reflect.ValueOf(entity).Elem().Field(i)
 
-		if tag == "required" {
-			if fieldVal.IsZero() {
-				return fmt.Errorf("validate error (required): %q", fieldVal)
+			if tag == "required" {
+				if fieldVal.IsZero() {
+					return fmt.Errorf("validate error (required): %q", fieldVal)
+				}
 			}
-		}
 
-		if strings.Contains(tag, "depends") {
-			v := strings.Split(tag, "=")[1]
-			e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
+			return nil
+		},
+		func(tag string, i int, field reflect.StructField) error {
+			fieldVal := reflect.ValueOf(entity).Elem().Field(i)
 
-			ee := b.b.Find(e, key, fieldVal.Interface().(string))
-			if len(ee) == 0 {
-				return fmt.Errorf("missing reference %v:%v", entity, key)
+			if strings.Contains(tag, "depends") {
+				v := strings.Split(tag, "=")[1]
+				e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
+
+				ee := b.b.Find(e, key, fieldVal.Interface().(string))
+				if len(ee) == 0 {
+					return fmt.Errorf("missing reference %v:%v", entity, key)
+				}
 			}
-		}
 
-		return nil
-	})
+			return nil
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -79,20 +87,21 @@ func (b *Backend) Update(entity model.Base) error {
 		return err
 	}
 
-	err = b.processModel(entity, func(tag string, i int, field reflect.StructField) error {
-		fieldVal := reflect.ValueOf(entity).Elem().Field(i).Interface()
-		newFieldVal := reflect.ValueOf(f).Elem().Field(i).Interface()
+	err = b.processModel(
+		entity,
+		func(tag string, i int, field reflect.StructField) error {
+			fieldVal := reflect.ValueOf(entity).Elem().Field(i).Interface()
+			newFieldVal := reflect.ValueOf(f).Elem().Field(i).Interface()
 
-		if tag != "immutable" {
+			if tag == "immutable" {
+				if fieldVal != newFieldVal {
+					return fmt.Errorf("validate error (immutable): %q != %q", fieldVal, newFieldVal)
+				}
+			}
+
 			return nil
-		}
-
-		if fieldVal != newFieldVal {
-			return fmt.Errorf("validate error (immutable): %q != %q", fieldVal, newFieldVal)
-		}
-
-		return nil
-	})
+		},
+	)
 	if err != nil {
 		return err
 	}
