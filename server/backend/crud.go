@@ -126,27 +126,30 @@ func (b *Backend) Delete(entity model.Base) error {
 		return err
 	}
 
-	err := b.processModel(entity, func(tag string, i int, field reflect.StructField) error {
-		fieldVal := reflect.ValueOf(entity).Elem().Field(i)
+	err := b.processModel(
+		entity,
+		func(tag string, i int, field reflect.StructField) error {
+			fieldVal := reflect.ValueOf(entity).Elem().Field(i)
 
-		if strings.Contains(tag, "reference") {
-			v := strings.Split(tag, "=")[1]
-			e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
+			if strings.Contains(tag, "reference") {
+				v := strings.Split(tag, "=")[1]
+				e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
 
-			ee := b.b.Find(e, key, fieldVal.Interface().(string))
-			if ee == nil {
-				return fmt.Errorf("missing reference %v:%v", entity, key)
-			}
+				ee := b.b.Find(e, key, fieldVal.Interface().(string))
+				if ee == nil {
+					return fmt.Errorf("missing reference %v:%v", entity, key)
+				}
 
-			for _, dependent := range ee {
-				if err := b.Delete(dependent); err != nil {
-					return fmt.Errorf("unable to delete referenced entity: %w", err)
+				for _, dependent := range ee {
+					if err := b.Delete(dependent); err != nil {
+						return fmt.Errorf("unable to delete referenced entity: %w", err)
+					}
 				}
 			}
-		}
 
-		return nil
-	})
+			return nil
+		},
+	)
 	if err != nil {
 		return err
 	}
