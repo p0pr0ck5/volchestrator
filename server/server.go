@@ -92,3 +92,25 @@ func (s *Server) FindVolumes(l *leaserequest.LeaseRequest) ([]*volume.Volume, er
 
 	return res, nil
 }
+
+func (s *Server) FindLeaseRequests(v *volume.Volume) ([]*leaserequest.LeaseRequest, error) {
+	var leaseRequests []model.Base
+	if err := s.b.List("LeaseRequest", &leaseRequests); err != nil {
+		return nil, err
+	}
+
+	res := []*leaserequest.LeaseRequest{}
+	for _, l := range leaseRequests {
+		l := l.(*leaserequest.LeaseRequest)
+
+		if l.Status != leaserequest.Pending {
+			continue
+		}
+
+		if l.Tag == v.Tag && l.Region == v.Region {
+			res = append(res, l)
+		}
+	}
+
+	return res, nil
+}
