@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 )
@@ -55,6 +56,27 @@ func (f *FSM) AddTransitions(state State, transitions []Transition) error {
 	defer f.transitionMapMutex.Unlock()
 
 	f.transitionMap[state] = append(f.transitionMap[state], transitions...)
+
+	return nil
+}
+
+func (f *FSM) AddCallback(state, transition State, callback Callback) error {
+	f.transitionMapMutex.Lock()
+	defer f.transitionMapMutex.Unlock()
+
+	var target Transition
+	for _, t := range f.transitionMap[state] {
+		if t.State == transition {
+			target = t
+			break
+		}
+	}
+
+	if target.State == nil {
+		return errors.New("transition state does not exist")
+	}
+
+	target.Callback = callback
 
 	return nil
 }

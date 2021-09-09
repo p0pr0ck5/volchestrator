@@ -428,3 +428,85 @@ func TestFSM_AddTransitions(t *testing.T) {
 		})
 	}
 }
+
+func TestFSM_AddCallback(t *testing.T) {
+	type fields struct {
+		transitionMap TransitionMap
+	}
+	type args struct {
+		state      State
+		transition State
+		callback   Callback
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			"add callback",
+			fields{
+				transitionMap: TransitionMap{
+					fooState: []Transition{
+						{
+							State: barState,
+						},
+					},
+				},
+			},
+			args{
+				state:      fooState,
+				transition: barState,
+				callback:   func(e Event) error { return nil },
+			},
+			false,
+		},
+		{
+			"invalid - source state does not exist",
+			fields{
+				transitionMap: TransitionMap{
+					fooState: []Transition{
+						{
+							State: barState,
+						},
+					},
+				},
+			},
+			args{
+				state:      bazState,
+				transition: barState,
+				callback:   func(e Event) error { return nil },
+			},
+			true,
+		},
+		{
+			"invalid - transition state does not exist",
+			fields{
+				transitionMap: TransitionMap{
+					fooState: []Transition{
+						{
+							State: barState,
+						},
+					},
+				},
+			},
+			args{
+				state:      fooState,
+				transition: bazState,
+				callback:   func(e Event) error { return nil },
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := &FSM{
+				transitionMap: tt.fields.transitionMap,
+			}
+			if err := f.AddCallback(tt.args.state, tt.args.transition, tt.args.callback); (err != nil) != tt.wantErr {
+				t.Errorf("FSM.AddCallback() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
