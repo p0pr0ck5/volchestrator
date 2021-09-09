@@ -22,27 +22,31 @@ func (b *Backend) Create(entity model.Base) error {
 	err := b.processModel(
 		entity,
 		func(tag string, i int, field reflect.StructField) error {
+			if tag != "required" {
+				return nil
+			}
+
 			fieldVal := reflect.ValueOf(entity).Elem().Field(i)
 
-			if tag == "required" {
-				if fieldVal.IsZero() {
-					return fmt.Errorf("validate error (required): %q", fieldVal)
-				}
+			if fieldVal.IsZero() {
+				return fmt.Errorf("validate error (required): %q", fieldVal)
 			}
 
 			return nil
 		},
 		func(tag string, i int, field reflect.StructField) error {
+			if !strings.Contains(tag, "depends") {
+				return nil
+			}
+
 			fieldVal := reflect.ValueOf(entity).Elem().Field(i)
 
-			if strings.Contains(tag, "depends") {
-				v := strings.Split(tag, "=")[1]
-				e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
+			v := strings.Split(tag, "=")[1]
+			e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
 
-				ee := b.b.Find(e, key, fieldVal.Interface().(string))
-				if len(ee) == 0 {
-					return fmt.Errorf("missing reference %v:%v", entity, key)
-				}
+			ee := b.b.Find(e, key, fieldVal.Interface().(string))
+			if len(ee) == 0 {
+				return fmt.Errorf("missing reference %v:%v", entity, key)
 			}
 
 			return nil
@@ -90,13 +94,15 @@ func (b *Backend) Update(entity model.Base) error {
 	err = b.processModel(
 		entity,
 		func(tag string, i int, field reflect.StructField) error {
+			if tag != "immutable" {
+				return nil
+			}
+
 			fieldVal := reflect.ValueOf(entity).Elem().Field(i).Interface()
 			newFieldVal := reflect.ValueOf(f).Elem().Field(i).Interface()
 
-			if tag == "immutable" {
-				if fieldVal != newFieldVal {
-					return fmt.Errorf("validate error (immutable): %q != %q", fieldVal, newFieldVal)
-				}
+			if fieldVal != newFieldVal {
+				return fmt.Errorf("validate error (immutable): %q != %q", fieldVal, newFieldVal)
 			}
 
 			return nil
@@ -129,21 +135,22 @@ func (b *Backend) Delete(entity model.Base) error {
 	err := b.processModel(
 		entity,
 		func(tag string, i int, field reflect.StructField) error {
+			if !strings.Contains(tag, "reference") {
+				return nil
+			}
+
 			fieldVal := reflect.ValueOf(entity).Elem().Field(i)
+			v := strings.Split(tag, "=")[1]
+			e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
 
-			if strings.Contains(tag, "reference") {
-				v := strings.Split(tag, "=")[1]
-				e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
+			ee := b.b.Find(e, key, fieldVal.Interface().(string))
+			if ee == nil {
+				return fmt.Errorf("missing reference %v:%v", entity, key)
+			}
 
-				ee := b.b.Find(e, key, fieldVal.Interface().(string))
-				if ee == nil {
-					return fmt.Errorf("missing reference %v:%v", entity, key)
-				}
-
-				for _, dependent := range ee {
-					if err := b.Delete(dependent); err != nil {
-						return fmt.Errorf("unable to delete referenced entity: %w", err)
-					}
+			for _, dependent := range ee {
+				if err := b.Delete(dependent); err != nil {
+					return fmt.Errorf("unable to delete referenced entity: %w", err)
 				}
 			}
 
