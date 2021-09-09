@@ -84,10 +84,6 @@ func NewMockBackend(opts ...BackendOpt) *MockBackend {
 	return m
 }
 
-func (m *MockBackend) SetMocks(mocks map[string]model.Base) {
-	m.mocks = mocks
-}
-
 func (m *MockBackend) WriteNotification(n *notification.Notification) error {
 	return nil
 }

@@ -34,11 +34,8 @@ func NewBackend(opts ...BackendOpt) *Backend {
 }
 
 func NewMemoryBackend(opts ...BackendOpt) *Backend {
-	m := memory.NewMemoryBackend()
-
-	b := &Backend{
-		b: m,
-	}
+	b := NewBackend()
+	b.b = memory.NewMemoryBackend()
 
 	for _, opt := range opts {
 		opt(b)
@@ -48,9 +45,8 @@ func NewMemoryBackend(opts ...BackendOpt) *Backend {
 }
 
 func NewMockBackend(opts ...BackendOpt) *Backend {
-	b := &Backend{
-		b: mock.NewMockBackend(),
-	}
+	b := NewBackend()
+	b.b = mock.NewMockBackend()
 
 	for _, opt := range opts {
 		opt(b)
