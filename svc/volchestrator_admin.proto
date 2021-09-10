@@ -10,13 +10,14 @@ package volchestrator;
 
 message Client {
   string client_id = 1;
+  string lease_id = 2;
   enum Status {
     Alive = 0;
     Deleting = 1;
   }
-  Status status = 2;
-  google.protobuf.Timestamp registered = 3;
-  google.protobuf.Timestamp last_seen = 4;
+  Status status = 3;
+  google.protobuf.Timestamp registered = 4;
+  google.protobuf.Timestamp last_seen = 5;
 }
 
 message GetClientRequest {
@@ -35,8 +36,9 @@ message ListClientsResponse {
 
 message Volume {
   string volume_id = 1;
-  string region = 2;
-  string tag = 3;
+  string lease_id = 2;
+  string region = 3;
+  string tag = 4;
   enum Status {
     unused = 0;
     Available = 1;
@@ -46,7 +48,7 @@ message Volume {
     Detaching = 5;
     Deleting = 6;
   }
-  Status status = 4;
+  Status status = 5;
 }
 
 message GetVolumeRequest {

@@ -138,9 +138,16 @@ func (b *Backend) Delete(entity model.Base) error {
 			v := strings.Split(tag, "=")[1]
 			e, key := strings.Split(v, ":")[0], strings.Split(v, ":")[1]
 
-			ee := b.b.Find(e, key, fieldVal.Interface().(string))
+			// hack- bail if the field is not defined. this should be better
+			// handled in conjunction with 'required' tag
+			id := fieldVal.Interface().(string)
+			if id == "" {
+				return nil
+			}
+
+			ee := b.b.Find(e, key, id)
 			if ee == nil {
-				return fmt.Errorf("missing reference %v:%v", entity, key)
+				return fmt.Errorf("missing reference %v:%v", e, key)
 			}
 
 			for _, dependent := range ee {

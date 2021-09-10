@@ -32,6 +32,7 @@ type Client struct {
 
 	ID         string `model:"immutable,required,reference=LeaseRequest:ClientID"`
 	Token      string `proto:"ignore" model:"required"`
+	LeaseID    string `model:"reference=Lease:ID"`
 	Status     Status
 	Registered time.Time
 	LastSeen   time.Time

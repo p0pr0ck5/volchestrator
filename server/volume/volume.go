@@ -83,10 +83,11 @@ var sm = fsm.TransitionMap{
 type Volume struct {
 	model.Model
 
-	ID     string `model:"immutable,required"`
-	Region string `model:"required"`
-	Tag    string `model:"required"`
-	Status Status `model:"required"`
+	ID      string `model:"immutable,required"`
+	LeaseID string `model:"reference=Lease:ID"`
+	Region  string `model:"required"`
+	Tag     string `model:"required"`
+	Status  Status `model:"required"`
 }
 
 func (v *Volume) Init() {

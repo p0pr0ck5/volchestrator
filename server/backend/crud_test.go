@@ -6,6 +6,7 @@ import (
 
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/lease"
 	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
@@ -292,6 +293,137 @@ func TestBackend_Create(t *testing.T) {
 			true,
 		},
 		{
+			"valid lease",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					ClientID: "foo",
+					VolumeID: "foo",
+					Status:   lease.Active,
+				},
+			},
+			false,
+		},
+		{
+			"invalid lease - missing id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ClientID: "foo",
+					VolumeID: "foo",
+					Status:   lease.Active,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease - missing client id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					VolumeID: "foo",
+					Status:   lease.Active,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease - bad client id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					ClientID: "bad",
+					VolumeID: "foo",
+					Status:   lease.Active,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease - non existent client",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					ClientID: "dne",
+					VolumeID: "foo",
+					Status:   lease.Active,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease - missing volume id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					ClientID: "foo",
+					Status:   lease.Active,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease - bad volume id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					ClientID: "foo",
+					VolumeID: "bad",
+					Status:   lease.Active,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease - non existent volume",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					ClientID: "foo",
+					VolumeID: "dne",
+					Status:   lease.Active,
+				},
+			},
+			true,
+		},
+		{
+			"invalid lease - missing status",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					ClientID: "foo",
+					VolumeID: "foo",
+				},
+			},
+			true,
+		},
+		{
 			"unsupported",
 			fields{
 				b: mock.NewMockBackend(),
@@ -428,6 +560,41 @@ func TestBackend_Read(t *testing.T) {
 			},
 			args{
 				&leaserequest.LeaseRequest{
+					ID: "bad",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"valid lease",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				&lease.Lease{
+					ID: "foo",
+				},
+			},
+			&lease.Lease{
+				ID:       "foo",
+				ClientID: "foo",
+				VolumeID: "foo",
+				Status:   lease.Active,
+
+				Model: model.Model{
+					CreatedAt: mock.NowIsh(),
+				},
+			},
+			false,
+		},
+		{
+			"invalid lease",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				&lease.Lease{
 					ID: "bad",
 				},
 			},
@@ -719,6 +886,53 @@ func TestBackend_Update(t *testing.T) {
 			nil,
 			true,
 		},
+		{
+			"valid lease",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:     "foo",
+					Status: lease.Active,
+				},
+			},
+			&lease.Lease{
+				ID:       "foo",
+				ClientID: "foo",
+				VolumeID: "foo",
+				Status:   lease.Active,
+			},
+			false,
+		},
+		{
+			"invalid lease - change client id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					ClientID: "bar",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"invalid lease - change client id",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				entity: &lease.Lease{
+					ID:       "foo",
+					VolumeID: "bar",
+				},
+			},
+			nil,
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -902,6 +1116,30 @@ func TestBackend_Delete(t *testing.T) {
 			},
 			args{
 				&leaserequest.LeaseRequest{
+					ID: "bad",
+				},
+			},
+			true,
+		},
+		{
+			"valid lease",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				&lease.Lease{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"invalid lease",
+			fields{
+				b: mock.NewMockBackend(),
+			},
+			args{
+				&lease.Lease{
 					ID: "bad",
 				},
 			},

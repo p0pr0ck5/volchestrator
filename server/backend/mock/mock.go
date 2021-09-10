@@ -60,6 +60,10 @@ var mocks = map[string]model.Base{
 		ClientID: "foo",
 		VolumeID: "foo",
 		Status:   lease.Active,
+
+		Model: model.Model{
+			CreatedAt: nowIsh(),
+		},
 	},
 }
 

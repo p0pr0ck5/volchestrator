@@ -70,6 +70,24 @@ func Test_toProto(t *testing.T) {
 			},
 		},
 		{
+			"client with a lease",
+			args{
+				from: &client.Client{
+					ID:         "foo",
+					Token:      "bar",
+					LeaseID:    "foo",
+					Registered: mockRegistered,
+					LastSeen:   mockLastSeen,
+				},
+			},
+			&svc.Client{
+				ClientId:   "foo",
+				LeaseId:    "foo",
+				Registered: registeredTS,
+				LastSeen:   lastSeenTS,
+			},
+		},
+		{
 			"volume",
 			args{
 				from: &volume.Volume{
@@ -117,6 +135,25 @@ func Test_toProto(t *testing.T) {
 				Region:   "us-west-2",
 				Tag:      "foo",
 				Status:   svc.Volume_Deleting,
+			},
+		},
+		{
+			"volume with a lease",
+			args{
+				from: &volume.Volume{
+					ID:      "foo",
+					LeaseID: "foo",
+					Region:  "us-west-2",
+					Tag:     "foo",
+					Status:  volume.Attached,
+				},
+			},
+			&svc.Volume{
+				VolumeId: "foo",
+				LeaseId:  "foo",
+				Region:   "us-west-2",
+				Tag:      "foo",
+				Status:   svc.Volume_Attached,
 			},
 		},
 		{
