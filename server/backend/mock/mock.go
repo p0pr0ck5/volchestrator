@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/lease"
 	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/notification"
@@ -53,6 +54,12 @@ var mocks = map[string]model.Base{
 		Model: model.Model{
 			CreatedAt: nowIsh(),
 		},
+	},
+	"Lease": &lease.Lease{
+		ID:       "foo",
+		ClientID: "foo",
+		VolumeID: "foo",
+		Status:   lease.Active,
 	},
 }
 

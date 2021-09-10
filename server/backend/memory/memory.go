@@ -6,6 +6,7 @@ type Memory struct {
 	ClientMap       ClientMap
 	VolumeMap       VolumeMap
 	LeaseRequestMap LeaseRequestMap
+	LeaseMap        LeaseMap
 
 	notificationMap map[string]*ChQueue
 
@@ -17,6 +18,7 @@ func NewMemoryBackend() *Memory {
 		ClientMap:       make(ClientMap),
 		VolumeMap:       make(VolumeMap),
 		LeaseRequestMap: make(LeaseRequestMap),
+		LeaseMap:        make(LeaseMap),
 		notificationMap: make(map[string]*ChQueue),
 	}
 

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/p0pr0ck5/volchestrator/server/client"
+	"github.com/p0pr0ck5/volchestrator/server/lease"
 	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
@@ -15,6 +16,7 @@ func TestMemory_Create(t *testing.T) {
 		ClientMap       ClientMap
 		VolumeMap       VolumeMap
 		LeaseRequestMap LeaseRequestMap
+		LeaseMap        LeaseMap
 		notificationMap map[string]*ChQueue
 	}
 	type args struct {
@@ -123,6 +125,38 @@ func TestMemory_Create(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"create new lease",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entity: &lease.Lease{
+					ID: "bar",
+				},
+			},
+			false,
+		},
+		{
+			"create existing lease",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entity: &lease.Lease{
+					ID: "foo",
+				},
+			},
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -130,6 +164,7 @@ func TestMemory_Create(t *testing.T) {
 				ClientMap:       tt.fields.ClientMap,
 				VolumeMap:       tt.fields.VolumeMap,
 				LeaseRequestMap: tt.fields.LeaseRequestMap,
+				LeaseMap:        tt.fields.LeaseMap,
 				notificationMap: tt.fields.notificationMap,
 			}
 			if err := m.Create(tt.args.entity); (err != nil) != tt.wantErr {
@@ -144,6 +179,7 @@ func TestMemory_Read(t *testing.T) {
 		ClientMap       ClientMap
 		VolumeMap       VolumeMap
 		LeaseRequestMap LeaseRequestMap
+		LeaseMap        LeaseMap
 		notificationMap map[string]*ChQueue
 	}
 	type args struct {
@@ -270,6 +306,42 @@ func TestMemory_Read(t *testing.T) {
 			nil,
 			true,
 		},
+		{
+			"read existing lease",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entity: &lease.Lease{
+					ID: "foo",
+				},
+			},
+			&lease.Lease{
+				ID: "foo",
+			},
+			false,
+		},
+		{
+			"read non-existing lease",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entity: &lease.Lease{
+					ID: "bar",
+				},
+			},
+			nil,
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -277,6 +349,7 @@ func TestMemory_Read(t *testing.T) {
 				ClientMap:       tt.fields.ClientMap,
 				VolumeMap:       tt.fields.VolumeMap,
 				LeaseRequestMap: tt.fields.LeaseRequestMap,
+				LeaseMap:        tt.fields.LeaseMap,
 				notificationMap: tt.fields.notificationMap,
 			}
 			got, err := m.Read(tt.args.entity)
@@ -296,6 +369,7 @@ func TestMemory_Update(t *testing.T) {
 		ClientMap       ClientMap
 		VolumeMap       VolumeMap
 		LeaseRequestMap LeaseRequestMap
+		LeaseMap        LeaseMap
 		notificationMap map[string]*ChQueue
 	}
 	type args struct {
@@ -409,6 +483,38 @@ func TestMemory_Update(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"update existing lease",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entity: &lease.Lease{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"update non-existing lease",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entity: &lease.Lease{
+					ID: "bar",
+				},
+			},
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -416,6 +522,7 @@ func TestMemory_Update(t *testing.T) {
 				ClientMap:       tt.fields.ClientMap,
 				VolumeMap:       tt.fields.VolumeMap,
 				LeaseRequestMap: tt.fields.LeaseRequestMap,
+				LeaseMap:        tt.fields.LeaseMap,
 				notificationMap: tt.fields.notificationMap,
 			}
 			if err := m.Update(tt.args.entity); (err != nil) != tt.wantErr {
@@ -430,6 +537,7 @@ func TestMemory_Delete(t *testing.T) {
 		ClientMap       ClientMap
 		VolumeMap       VolumeMap
 		LeaseRequestMap LeaseRequestMap
+		LeaseMap        LeaseMap
 		notificationMap map[string]*ChQueue
 	}
 	type args struct {
@@ -540,6 +648,38 @@ func TestMemory_Delete(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"delete existing lease",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entity: &lease.Lease{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"delete non-existing lease",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entity: &lease.Lease{
+					ID: "bar",
+				},
+			},
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -547,6 +687,7 @@ func TestMemory_Delete(t *testing.T) {
 				ClientMap:       tt.fields.ClientMap,
 				VolumeMap:       tt.fields.VolumeMap,
 				LeaseRequestMap: tt.fields.LeaseRequestMap,
+				LeaseMap:        tt.fields.LeaseMap,
 				notificationMap: tt.fields.notificationMap,
 			}
 			if err := m.Delete(tt.args.entity); (err != nil) != tt.wantErr {
@@ -561,6 +702,7 @@ func TestMemory_List(t *testing.T) {
 		ClientMap       ClientMap
 		VolumeMap       VolumeMap
 		LeaseRequestMap LeaseRequestMap
+		LeaseMap        LeaseMap
 		notificationMap map[string]*ChQueue
 	}
 	type args struct {
@@ -755,6 +897,64 @@ func TestMemory_List(t *testing.T) {
 			&[]model.Base{},
 			false,
 		},
+		{
+			"one lease",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+				},
+			},
+			args{
+				entityType: "Lease",
+				entities:   &[]model.Base{},
+			},
+			&[]model.Base{
+				&lease.Lease{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"two leases",
+			fields{
+				LeaseMap: map[string]*lease.Lease{
+					"foo": {
+						ID: "foo",
+					},
+					"bar": {
+						ID: "bar",
+					},
+				},
+			},
+			args{
+				entityType: "Lease",
+				entities:   &[]model.Base{},
+			},
+			&[]model.Base{
+				&lease.Lease{
+					ID: "bar",
+				},
+				&lease.Lease{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"zero lease s",
+			fields{
+				LeaseMap: map[string]*lease.Lease{},
+			},
+			args{
+				entityType: "Lease",
+				entities:   &[]model.Base{},
+			},
+			&[]model.Base{},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -762,6 +962,7 @@ func TestMemory_List(t *testing.T) {
 				ClientMap:       tt.fields.ClientMap,
 				VolumeMap:       tt.fields.VolumeMap,
 				LeaseRequestMap: tt.fields.LeaseRequestMap,
+				LeaseMap:        tt.fields.LeaseMap,
 				notificationMap: tt.fields.notificationMap,
 			}
 			if err := m.List(tt.args.entityType, tt.args.entities); (err != nil) != tt.wantErr {
@@ -777,8 +978,10 @@ func TestMemory_List(t *testing.T) {
 
 func TestMemory_getMap(t *testing.T) {
 	type fields struct {
-		ClientMap ClientMap
-		VolumeMap VolumeMap
+		ClientMap       ClientMap
+		VolumeMap       VolumeMap
+		LeaseRequestMap LeaseRequestMap
+		LeaseMap        LeaseMap
 	}
 	type args struct {
 		entityType string
@@ -802,10 +1005,30 @@ func TestMemory_getMap(t *testing.T) {
 		{
 			"volume",
 			fields{
-				ClientMap: make(ClientMap),
+				VolumeMap: make(VolumeMap),
 			},
 			args{
 				"Volume",
+			},
+			false,
+		},
+		{
+			"lease request",
+			fields{
+				LeaseRequestMap: make(LeaseRequestMap),
+			},
+			args{
+				"LeaseRequest",
+			},
+			false,
+		},
+		{
+			"lease",
+			fields{
+				LeaseMap: make(LeaseMap),
+			},
+			args{
+				"Lease",
 			},
 			false,
 		},
@@ -823,8 +1046,10 @@ func TestMemory_getMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Memory{
-				ClientMap: tt.fields.ClientMap,
-				VolumeMap: tt.fields.VolumeMap,
+				ClientMap:       tt.fields.ClientMap,
+				VolumeMap:       tt.fields.VolumeMap,
+				LeaseRequestMap: tt.fields.LeaseRequestMap,
+				LeaseMap:        tt.fields.LeaseMap,
 			}
 			defer func() {
 				if r := recover(); (r != nil) != tt.wantPanic {

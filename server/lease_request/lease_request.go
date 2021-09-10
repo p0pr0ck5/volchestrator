@@ -83,7 +83,7 @@ func (l *LeaseRequest) UpdateFSM() error {
 	return l.FSM.Transition(l.Status)
 }
 
-func (v *LeaseRequest) Clone() model.Base {
-	vv := *v
-	return &vv
+func (l *LeaseRequest) Clone() model.Base {
+	ll := *l
+	return &ll
 }
