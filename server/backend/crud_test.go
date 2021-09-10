@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/p0pr0ck5/volchestrator/fsm"
 	"github.com/p0pr0ck5/volchestrator/server/backend/mock"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
@@ -30,7 +29,7 @@ func (m *mockBase) ValidateTransition(i model.Base) error {
 
 func (m *mockBase) SetStatus(s string) {}
 
-func (m *mockBase) F() *fsm.FSM {
+func (m *mockBase) UpdateFSM() error {
 	return nil
 }
 

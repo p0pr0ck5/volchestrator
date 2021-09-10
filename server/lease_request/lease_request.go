@@ -79,8 +79,8 @@ func (l *LeaseRequest) SetStatus(s string) {
 	l.Status = statusMap[s]
 }
 
-func (l *LeaseRequest) F() *fsm.FSM {
-	return l.FSM
+func (l *LeaseRequest) UpdateFSM() error {
+	return l.FSM.Transition(l.Status)
 }
 
 func (v *LeaseRequest) Clone() model.Base {

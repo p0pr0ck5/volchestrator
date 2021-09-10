@@ -120,8 +120,8 @@ func (v *Volume) SetStatus(s string) {
 	v.Status = statusMap[s]
 }
 
-func (v *Volume) F() *fsm.FSM {
-	return v.FSM
+func (v *Volume) UpdateFSM() error {
+	return v.FSM.Transition(v.Status)
 }
 
 func (v *Volume) Clone() model.Base {

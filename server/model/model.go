@@ -19,6 +19,6 @@ type Base interface {
 	Validate() error
 	ValidateTransition(Base) error
 	SetStatus(string)
-	F() *fsm.FSM
+	UpdateFSM() error
 	Clone() Base
 }

@@ -60,8 +60,8 @@ func (c *Client) SetStatus(s string) {
 	c.Status = statusMap[s]
 }
 
-func (c *Client) F() *fsm.FSM {
-	return c.FSM
+func (c *Client) UpdateFSM() error {
+	return c.FSM.Transition(c.Status)
 }
 
 func (v *Client) Clone() model.Base {
