@@ -12,7 +12,7 @@ import (
 type processfunc func(string, int, reflect.StructField) error
 
 func (b *Backend) Create(entity model.Base) error {
-	entity.Init()
+	entity.Init(model.WithSM(b.BuildSMMap()[entityType(entity)]))
 
 	if err := entity.Validate(); err != nil {
 		return err
@@ -140,7 +140,7 @@ func (b *Backend) Delete(entity model.Base) error {
 
 			// hack- bail if the field is not defined. this should be better
 			// handled in conjunction with 'required' tag
-			id := fieldVal.Interface().(string)
+			id := fieldVal.String()
 			if id == "" {
 				return nil
 			}
@@ -209,4 +209,8 @@ func set(entity interface{}, field string, value interface{}) {
 	if f.CanSet() {
 		f.Set(reflect.ValueOf(value))
 	}
+}
+
+func entityType(entity model.Base) string {
+	return reflect.ValueOf(entity).Elem().Type().Name()
 }

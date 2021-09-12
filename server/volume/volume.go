@@ -40,46 +40,6 @@ const (
 	Deleting
 )
 
-var sm = fsm.TransitionMap{
-	Available: []fsm.Transition{
-		{
-			State: Unavailable,
-		},
-		{
-			State: Attaching,
-		},
-	},
-	Unavailable: []fsm.Transition{
-		{
-			State: Available,
-		},
-		{
-			State: Deleting,
-		},
-	},
-	Attaching: []fsm.Transition{
-		{
-			State: Attached,
-		},
-		{
-			State: Detaching,
-		},
-	},
-	Attached: []fsm.Transition{
-		{
-			State: Detaching,
-		},
-	},
-	Detaching: []fsm.Transition{
-		{
-			State: Available,
-		},
-		{
-			State: Unavailable,
-		},
-	},
-}
-
 type Volume struct {
 	model.Model
 
@@ -90,10 +50,11 @@ type Volume struct {
 	Status  Status `model:"required"`
 }
 
-func (v *Volume) Init() {
+func (v *Volume) Init(opts ...model.ModelOpt) {
 	v.FSM, _ = fsm.NewFSM(v.Status)
-	for k, vv := range sm {
-		v.FSM.AddTransitions(k, vv)
+
+	for _, opt := range opts {
+		opt(&v.Model)
 	}
 }
 

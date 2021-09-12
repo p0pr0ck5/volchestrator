@@ -211,7 +211,7 @@ func TestServer_PruneClientsReturn(t *testing.T) {
 				Registered: mockThen,
 				LastSeen:   mockThen,
 			}
-			c.Init()
+			c.Init(model.WithSM(mock.SMMap["Client"]))
 
 			return []model.Base{c}, nil
 		}

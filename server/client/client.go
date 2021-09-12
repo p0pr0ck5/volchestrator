@@ -19,14 +19,6 @@ const (
 	Deleting
 )
 
-var sm = fsm.TransitionMap{
-	Alive: []fsm.Transition{
-		{
-			State: Deleting,
-		},
-	},
-}
-
 type Client struct {
 	model.Model
 
@@ -38,10 +30,11 @@ type Client struct {
 	LastSeen   time.Time
 }
 
-func (c *Client) Init() {
+func (c *Client) Init(opts ...model.ModelOpt) {
 	c.FSM, _ = fsm.NewFSM(c.Status)
-	for k, v := range sm {
-		c.FSM.AddTransitions(k, v)
+
+	for _, opt := range opts {
+		opt(&c.Model)
 	}
 }
 

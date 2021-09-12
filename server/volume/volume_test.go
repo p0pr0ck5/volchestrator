@@ -4,36 +4,6 @@ import (
 	"testing"
 )
 
-func TestValidate(t *testing.T) {
-	type args struct {
-		v *Volume
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			"valid volume",
-			args{
-				v: &Volume{
-					ID:     "foo",
-					Region: "us-west-2",
-					Tag:    "bar",
-				},
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.args.v.Validate(); (err != nil) != tt.wantErr {
-				t.Errorf("Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func TestVolume_ValidateTransition(t *testing.T) {
 	type args struct {
 		currentVolume *Volume

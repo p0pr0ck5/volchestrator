@@ -18,14 +18,6 @@ const (
 	Deleting
 )
 
-var sm = fsm.TransitionMap{
-	Active: []fsm.Transition{
-		{
-			State: Deleting,
-		},
-	},
-}
-
 type Lease struct {
 	model.Model
 
@@ -35,10 +27,11 @@ type Lease struct {
 	Status   Status `model:"required"`
 }
 
-func (l *Lease) Init() {
+func (l *Lease) Init(opts ...model.ModelOpt) {
 	l.FSM, _ = fsm.NewFSM(l.Status)
-	for k, vv := range sm {
-		l.FSM.AddTransitions(k, vv)
+
+	for _, opt := range opts {
+		opt(&l.Model)
 	}
 }
 

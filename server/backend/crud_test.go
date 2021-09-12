@@ -14,7 +14,7 @@ import (
 
 type mockBase struct{}
 
-func (m *mockBase) Init() {}
+func (m *mockBase) Init(opts ...model.ModelOpt) {}
 
 func (m *mockBase) Identifier() string {
 	return ""
