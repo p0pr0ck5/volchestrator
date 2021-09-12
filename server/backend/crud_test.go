@@ -1074,6 +1074,54 @@ func TestBackend_Delete(t *testing.T) {
 			true,
 		},
 		{
+			"valid client with associated lease",
+			fields{
+				b: mock.NewMockBackend(mock.WithMocks(map[string]model.Base{
+					"Client": &client.Client{
+						ID:      "foo",
+						LeaseID: "foo",
+						Status:  client.Alive,
+					},
+					"Lease": &lease.Lease{
+						ID:       "foo",
+						ClientID: "foo",
+						VolumeID: "foo",
+						Status:   lease.Active,
+					},
+				})),
+			},
+			args{
+				&client.Client{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"valid client with error deleting associated lease",
+			fields{
+				b: mock.NewMockBackend(mock.WithMocks(map[string]model.Base{
+					"Client": &client.Client{
+						ID:      "foo",
+						LeaseID: "bad",
+						Status:  client.Alive,
+					},
+					"Lease": &lease.Lease{
+						ID:       "bad",
+						ClientID: "foo",
+						VolumeID: "foo",
+						Status:   lease.Active,
+					},
+				})),
+			},
+			args{
+				&client.Client{
+					ID: "foo",
+				},
+			},
+			true,
+		},
+		{
 			"valid volume",
 			fields{
 				b: mock.NewMockBackend(),

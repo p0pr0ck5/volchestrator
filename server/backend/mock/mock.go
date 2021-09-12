@@ -193,7 +193,10 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 }
 
 func (m *MockBackend) Find(entityType, fieldName, id string) []model.Base {
-	e := m.mocks[entityType]
+	e, ok := m.mocks[entityType]
+	if !ok {
+		return []model.Base{}
+	}
 	f := reflect.ValueOf(e).Elem().FieldByName(fieldName).Interface().(string)
 	if f == id {
 		e = e.Clone()
