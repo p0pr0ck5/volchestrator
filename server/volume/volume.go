@@ -83,7 +83,7 @@ func (v *Volume) SetStatus(s string) {
 }
 
 func (v *Volume) UpdateFSM() error {
-	return v.FSM.Transition(v.Status)
+	return v.FSM.Transition(v.Status, v)
 }
 
 func (v *Volume) Clone() model.Base {

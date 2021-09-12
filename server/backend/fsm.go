@@ -5,6 +5,7 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/lease"
 	lease_request "github.com/p0pr0ck5/volchestrator/server/lease_request"
+	"github.com/p0pr0ck5/volchestrator/server/model"
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
@@ -23,6 +24,35 @@ func (b *Backend) BuildSMMap() SMMap {
 			lease.Active: []fsm.Transition{
 				{
 					State: lease.Deleting,
+					Callback: func(e fsm.Event) error {
+						// reset the volume associated with the lease
+						lease := e.Args[0].(*lease.Lease)
+
+						var volumes []model.Base
+						if err := b.List("Volume", &volumes); err != nil {
+							return err
+						}
+
+						for _, v := range volumes {
+							v := v.(*volume.Volume)
+
+							if v.LeaseID != lease.ID {
+								continue
+							}
+
+							v.Status = volume.Detaching
+							if err := b.Update(v); err != nil {
+								return err
+							}
+
+							v.Status = volume.Available
+							if err := b.Update(v); err != nil {
+								return err
+							}
+						}
+
+						return nil
+					},
 				},
 			},
 		},

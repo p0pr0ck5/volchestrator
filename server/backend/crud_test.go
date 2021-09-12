@@ -1088,6 +1088,11 @@ func TestBackend_Delete(t *testing.T) {
 						VolumeID: "foo",
 						Status:   lease.Active,
 					},
+					"Volume": &volume.Volume{
+						ID:      "foo",
+						LeaseID: "foo",
+						Status:  volume.Attached,
+					},
 				})),
 			},
 			args{
@@ -1111,6 +1116,35 @@ func TestBackend_Delete(t *testing.T) {
 						ClientID: "foo",
 						VolumeID: "foo",
 						Status:   lease.Active,
+					},
+				})),
+			},
+			args{
+				&client.Client{
+					ID: "foo",
+				},
+			},
+			true,
+		},
+		{
+			"valid client with error during callback while deleting associated lease",
+			fields{
+				b: mock.NewMockBackend(mock.WithMocks(map[string]model.Base{
+					"Client": &client.Client{
+						ID:      "foo",
+						LeaseID: "foo",
+						Status:  client.Alive,
+					},
+					"Lease": &lease.Lease{
+						ID:       "foo",
+						ClientID: "foo",
+						VolumeID: "bad",
+						Status:   lease.Active,
+					},
+					"Volume": &volume.Volume{
+						ID:      "bad",
+						LeaseID: "foo",
+						Status:  volume.Attached,
 					},
 				})),
 			},
@@ -1189,6 +1223,64 @@ func TestBackend_Delete(t *testing.T) {
 			args{
 				&lease.Lease{
 					ID: "bad",
+				},
+			},
+			true,
+		},
+		{
+			"valid lease with associated volume",
+			fields{
+				b: mock.NewMockBackend(mock.WithMocks(map[string]model.Base{
+					"Client": &client.Client{
+						ID:      "foo",
+						LeaseID: "bad",
+						Status:  client.Alive,
+					},
+					"Lease": &lease.Lease{
+						ID:       "foo",
+						ClientID: "foo",
+						VolumeID: "foo",
+						Status:   lease.Active,
+					},
+					"Volume": &volume.Volume{
+						ID:      "foo",
+						LeaseID: "foo",
+						Status:  volume.Attached,
+					},
+				})),
+			},
+			args{
+				&lease.Lease{
+					ID: "foo",
+				},
+			},
+			false,
+		},
+		{
+			"valid lease with error resetting associated volume",
+			fields{
+				b: mock.NewMockBackend(mock.WithMocks(map[string]model.Base{
+					"Client": &client.Client{
+						ID:      "foo",
+						LeaseID: "bad",
+						Status:  client.Alive,
+					},
+					"Lease": &lease.Lease{
+						ID:       "foo",
+						ClientID: "foo",
+						VolumeID: "foo",
+						Status:   lease.Active,
+					},
+					"Volume": &volume.Volume{
+						ID:      "bad",
+						LeaseID: "foo",
+						Status:  volume.Attached,
+					},
+				})),
+			},
+			args{
+				&lease.Lease{
+					ID: "foo",
 				},
 			},
 			true,

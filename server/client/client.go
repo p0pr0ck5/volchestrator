@@ -55,7 +55,7 @@ func (c *Client) SetStatus(s string) {
 }
 
 func (c *Client) UpdateFSM() error {
-	return c.FSM.Transition(c.Status)
+	return c.FSM.Transition(c.Status, c)
 }
 
 func (v *Client) Clone() model.Base {

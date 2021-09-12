@@ -52,7 +52,7 @@ func (l *Lease) SetStatus(s string) {
 }
 
 func (l *Lease) UpdateFSM() error {
-	return l.FSM.Transition(l.Status)
+	return l.FSM.Transition(l.Status, l)
 }
 
 func (l *Lease) Clone() model.Base {

@@ -151,7 +151,7 @@ func (m *MockBackend) Read(entity model.Base) (model.Base, error) {
 	}
 	reflect.ValueOf(e).Elem().FieldByName("ID").Set(reflect.ValueOf(id))
 
-	e.Init(model.WithSM(SMMap[entityType]))
+	e.Init(model.WithSM(m.BuildSMMap()[entityType]))
 
 	return e, nil
 }
@@ -185,7 +185,7 @@ func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
 		return errors.New("unsupported")
 	}
 	e = e.Clone()
-	e.Init(model.WithSM(SMMap[entityType]))
+	e.Init(model.WithSM(m.BuildSMMap()[entityType]))
 
 	*entities = append(*entities, e)
 
@@ -200,7 +200,7 @@ func (m *MockBackend) Find(entityType, fieldName, id string) []model.Base {
 	f := reflect.ValueOf(e).Elem().FieldByName(fieldName).Interface().(string)
 	if f == id {
 		e = e.Clone()
-		e.Init(model.WithSM(SMMap[entityType]))
+		e.Init(model.WithSM(m.BuildSMMap()[entityType]))
 		return []model.Base{e}
 	}
 	return nil
