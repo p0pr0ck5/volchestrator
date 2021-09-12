@@ -9,8 +9,8 @@ import (
 	"github.com/p0pr0ck5/volchestrator/server/volume"
 )
 
+// reset the volume associated with the lease
 func resetVolume(b *Backend, e fsm.Event) error {
-	// reset the volume associated with the lease
 	lease := e.Args[0].(*lease.Lease)
 
 	var volumes []model.Base

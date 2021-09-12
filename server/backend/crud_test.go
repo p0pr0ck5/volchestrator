@@ -1062,7 +1062,7 @@ func TestBackend_Delete(t *testing.T) {
 					"LeaseRequest": &leaserequest.LeaseRequest{
 						ID:       "foo",
 						ClientID: "foo",
-						Status:   leaserequest.Fulfilled,
+						Status:   leaserequest.Fulfilling,
 					},
 				})),
 			},
