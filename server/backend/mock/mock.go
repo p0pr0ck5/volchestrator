@@ -77,9 +77,6 @@ func NowIsh() time.Time {
 }
 
 type MockBackend struct {
-	ClientLister func() ([]model.Base, error)
-	VolumeLister func() ([]model.Base, error)
-
 	mocks map[string]model.Base
 }
 
@@ -165,21 +162,6 @@ func (m *MockBackend) Delete(entity model.Base) error {
 }
 
 func (m *MockBackend) List(entityType string, entities *[]model.Base) error {
-	fn := entityType + "Lister"
-	f := reflect.ValueOf(m).Elem().FieldByName(fn)
-	if f.IsValid() && !f.IsNil() {
-		res := f.Call([]reflect.Value{})
-		if e, ok := res[1].Interface().(error); ok {
-			return e
-		} else {
-			ee := res[0].Interface().([]model.Base)
-			for _, m := range ee {
-				*entities = append(*entities, m.Clone())
-			}
-			return nil
-		}
-	}
-
 	e, ok := m.mocks[entityType]
 	if !ok {
 		return errors.New("unsupported")

@@ -196,46 +196,44 @@ func TestServer_PruneClients(t *testing.T) {
 }
 
 func TestServer_PruneClientsReturn(t *testing.T) {
-	t.Skip()
 	ttl := time.Duration(30)
-
 	mockThen := time.Now().Add(time.Second * -ttl)
-
-	lister := func(s string) func() ([]model.Base, error) {
-		return func() ([]model.Base, error) {
-			if s == "" {
-				return nil, errors.New("bad")
-			}
-
-			c := &client.Client{
-				ID:         s,
-				Registered: mockThen,
-				LastSeen:   mockThen,
-			}
-			//c.Init(model.WithSM(mock.BuildSMMap()["Client"]))
-
-			return []model.Base{c}, nil
-		}
-	}
 
 	tests := []struct {
 		name    string
-		lister  func() ([]model.Base, error)
+		mocks   map[string]model.Base
 		wantErr bool
 	}{
 		{
 			"no error",
-			lister("foo"),
+			map[string]model.Base{
+				"Client": &client.Client{
+					ID:         "foo",
+					Registered: mockThen,
+					LastSeen:   mockThen,
+				},
+			},
 			false,
 		},
 		{
 			"error during delete client",
-			lister("bad"),
+			map[string]model.Base{
+				"Client": &client.Client{
+					ID:         "bad",
+					Registered: mockThen,
+					LastSeen:   mockThen,
+				},
+			},
 			true,
 		},
 		{
 			"error during list client",
-			lister(""),
+			map[string]model.Base{
+				"Client": &client.Client{
+					Registered: mockThen,
+					LastSeen:   mockThen,
+				},
+			},
 			true,
 		},
 	}
@@ -245,8 +243,7 @@ func TestServer_PruneClientsReturn(t *testing.T) {
 				ClientTTL: int(ttl * 2 / 3),
 			}
 
-			b := mock.NewMockBackend()
-			b.ClientLister = tt.lister
+			b := mock.NewMockBackend(mock.WithMocks(tt.mocks))
 
 			s, _ := NewServer(
 				WithConfig(config),
