@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/p0pr0ck5/volchestrator/server/backend"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	leaserequest "github.com/p0pr0ck5/volchestrator/server/lease_request"
 	"github.com/p0pr0ck5/volchestrator/server/model"
@@ -34,7 +35,7 @@ func (s *Server) GetClient(ctx context.Context, req *svc.GetClientRequest) (*svc
 
 func (s *Server) ListClients(ctx context.Context, req *svc.ListClientsRequest) (*svc.ListClientsResponse, error) {
 	clients := []model.Base{}
-	if err := s.b.List("Client", &clients); err != nil {
+	if err := s.b.List(backend.Client, &clients); err != nil {
 		return nil, err
 	}
 
@@ -69,7 +70,7 @@ func (s *Server) GetVolume(ctx context.Context, req *svc.GetVolumeRequest) (*svc
 
 func (s *Server) ListVolumes(ctx context.Context, req *svc.ListVolumesRequest) (*svc.ListVolumesReponse, error) {
 	volumes := []model.Base{}
-	if err := s.b.List("Volume", &volumes); err != nil {
+	if err := s.b.List(backend.Volume, &volumes); err != nil {
 		return nil, err
 	}
 
@@ -138,7 +139,7 @@ func (s *Server) GetLeaseRequest(ctx context.Context, req *svc.GetLeaseRequestRe
 
 func (s *Server) ListLeaseRequests(ctx context.Context, req *svc.ListLeaseRequestsRequest) (*svc.ListLeaseRequestsResponse, error) {
 	leaseRequests := []model.Base{}
-	if err := s.b.List("LeaseRequest", &leaseRequests); err != nil {
+	if err := s.b.List(backend.LeaseRequest, &leaseRequests); err != nil {
 		return nil, err
 	}
 

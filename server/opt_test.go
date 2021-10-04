@@ -3,6 +3,7 @@ package server
 import (
 	"testing"
 
+	"github.com/p0pr0ck5/volchestrator/server/backend"
 	"github.com/p0pr0ck5/volchestrator/server/backend/memory"
 	"github.com/p0pr0ck5/volchestrator/server/client"
 	"github.com/p0pr0ck5/volchestrator/server/model"
@@ -71,8 +72,8 @@ func TestWithMemoryBackend(t *testing.T) {
 
 			l1 := []model.Base{}
 			l2 := []model.Base{}
-			s1.b.List("Client", &l1)
-			s2.b.List("Client", &l2)
+			s1.b.List(backend.Client, &l1)
+			s2.b.List(backend.Client, &l2)
 			if (len(l1) == len(l2)) != tt.wantEqual {
 				t.Errorf("s1.b == s2.b = %v, want %v", s1.b == s2.b, tt.wantEqual)
 			}

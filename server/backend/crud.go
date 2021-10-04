@@ -11,6 +11,15 @@ import (
 
 type processfunc func(string, int, reflect.StructField) error
 
+type EntityType string
+
+const (
+	Client       EntityType = "Client"
+	Volume       EntityType = "Volume"
+	LeaseRequest EntityType = "LeaseRequest"
+	Lease        EntityType = "Lease"
+)
+
 func (b *Backend) Create(entity model.Base) error {
 	entity.Init(model.WithSM(b.BuildSMMap()[entityType(entity)]))
 
@@ -166,8 +175,8 @@ func (b *Backend) Delete(entity model.Base) error {
 	return b.b.Delete(entity)
 }
 
-func (b *Backend) List(entityType string, entities *[]model.Base) error {
-	return b.b.List(entityType, entities)
+func (b *Backend) List(entityType EntityType, entities *[]model.Base) error {
+	return b.b.List(string(entityType), entities)
 }
 
 func (b *Backend) processModel(entity model.Base, processors ...processfunc) error {

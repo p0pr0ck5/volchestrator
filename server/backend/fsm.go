@@ -14,7 +14,7 @@ func resetVolume(b *Backend, e fsm.Event) error {
 	lease := e.Args[0].(*lease.Lease)
 
 	var volumes []model.Base
-	if err := b.List("Volume", &volumes); err != nil {
+	if err := b.List(Volume, &volumes); err != nil {
 		return err
 	}
 

@@ -53,7 +53,7 @@ func (s *Server) PruneClients() error {
 	var errs *multierror.Error
 
 	clients := []model.Base{}
-	if err := s.b.List("Client", &clients); err != nil {
+	if err := s.b.List(backend.Client, &clients); err != nil {
 		errs = multierror.Append(err)
 		return errs
 	}
@@ -73,7 +73,7 @@ func (s *Server) PruneClients() error {
 
 func (s *Server) FindVolumes(l *leaserequest.LeaseRequest) ([]*volume.Volume, error) {
 	var volumes []model.Base
-	if err := s.b.List("Volume", &volumes); err != nil {
+	if err := s.b.List(backend.Volume, &volumes); err != nil {
 		return nil, err
 	}
 
@@ -95,7 +95,7 @@ func (s *Server) FindVolumes(l *leaserequest.LeaseRequest) ([]*volume.Volume, er
 
 func (s *Server) FindLeaseRequests(v *volume.Volume) ([]*leaserequest.LeaseRequest, error) {
 	var leaseRequests []model.Base
-	if err := s.b.List("LeaseRequest", &leaseRequests); err != nil {
+	if err := s.b.List(backend.LeaseRequest, &leaseRequests); err != nil {
 		return nil, err
 	}
 
