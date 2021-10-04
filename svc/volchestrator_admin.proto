@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "svc/base.proto";
-
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/p0pr0ck5/volchestrator/svc";
@@ -82,6 +80,21 @@ message DeleteVolumeRequest {
 }
 
 message DeleteVolumeResponse {}
+
+message LeaseRequest {
+  string lease_request_id = 1;
+  string client_id = 2;
+  string region = 3;
+  string tag = 4;
+  enum Status {
+    unused = 0;
+    Pending = 1;
+    Fulfulling = 2;
+    Fulfilled = 3;
+    Deleting = 4;
+  }
+  Status status = 5;
+}
 
 message GetLeaseRequestRequest {
   string lease_request_id = 1;
